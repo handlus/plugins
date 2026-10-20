@@ -53,7 +53,7 @@ chrome_demo_cursor action:"play" startAt:<T0 epoch ms> start:[1500, 760] scrollT
 - One second before `startAt` it clears selection and focus and puts the cursor at `start`. Pick `T0` about 15 s ahead so the recorder is running first
 - Rhythm that looks human: move 0.4–1 s (automatic) · pause 0.16 s · press 0.26 s · typing 45–90 ms per character
 
-**5-B. Cursor and schedule — other Chrome MCPs (or Handlus ≤ 0.3.0)** — inject `scripts/cursor.js` with the MCP's JavaScript tool (pass the whole file as the code), then in a second call `window.__fc.runAt(T0, {start, prep, script: async (F, log) => { … }})` with `F.clickEl`, `F.typeInto`, `F.typeCE`, `F.moveTo`, `F.scrollBy`. These JavaScript tools use Chrome's debugger, so finish them **at least 20 s before T0**.
+**5-B. Cursor and schedule — other Chrome MCPs (or Handlus ≤ 0.3.0)** — inject `scripts/cursor.js` with the MCP's JavaScript tool (pass the whole file as the code), then in a second call `window.__fc.runAt(T0, {start, prep, script: async (F, log) => { … }})` with `F.clickEl`, `F.typeInto`, `F.typeCE`, `F.moveTo`, `F.scrollBy`. These JavaScript tools use Chrome's debugger, so finish them **at least 20 s before T0**. Read the log afterwards with `JSON.stringify(window.__fcLog)` (it stays in the page; a page-changing click must be the last step, preceded by `log('nav: …')`).
 
 **6. Record** — `zsh $K/rec.sh record <T0> <action length + 3> <out>/REC.mp4` (note the `rec_started` line). Keep the recording only 3 s longer than the action; a long static tail lowers the frame rate.
 

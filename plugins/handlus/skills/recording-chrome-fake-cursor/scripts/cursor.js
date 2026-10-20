@@ -148,9 +148,9 @@ function reset(start) {
 /** T0 에 script 를 실행하도록 예약. 시작 1초 전에 prep + reset. 모든 단계가 __fcLog 에 남는다 */
 function runAt(T0, { start, prep, script }) {
   window.__fcLog = [];
-  // 페이지를 넘기는 클릭으로 끝나는 테이크는 로그가 페이지와 같이 사라진다 → 같은 사이트의 localStorage 에도 쓴다.
-  // 넘어간 뒤에는 그 사이트를 다시 열어 localStorage.__fcLog 를 읽는다 (2026-10-13)
-  const log = m => { window.__fcLog.push([Date.now() - T0, m, document.hidden]); try { localStorage.setItem('__fcLog', JSON.stringify({ T0, log: window.__fcLog })); } catch (e) {} };
+  // The log stays in this page only (window.__fcLog) — nothing is written to the site's storage.
+  // A click that leaves the page ends the log: log('nav: <where>') right before it (evidence.py treats nav: as the end).
+  const log = m => { window.__fcLog.push([Date.now() - T0, m, document.hidden]); };
   setTimeout(() => { try { prep && prep(); } catch (e) { log('prep error ' + e.message); } reset(start); },
     Math.max(0, T0 - Date.now() - 1000));
   setTimeout(async () => {
