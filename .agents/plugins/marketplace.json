@@ -1,0 +1,12 @@
+{
+  "name": "handlus",
+  "interface": { "displayName": "Handlus" },
+  "plugins": [
+    {
+      "name": "handlus",
+      "source": { "source": "local", "path": "./plugins/handlus" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    }
+  ]
+}

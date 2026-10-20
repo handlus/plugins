@@ -1,0 +1,5 @@
+bin/
+*.mp4
+*.rec.json
+.DS_Store
+__pycache__/

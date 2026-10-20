@@ -1,0 +1,15 @@
+{
+  "name": "handlus",
+  "owner": { "name": "Handlus", "email": "support@handlus.com", "url": "https://handlus.com" },
+  "metadata": { "description": "Plugins from Handlus — the Chrome MCP that lets Claude Code and Codex use your own Chrome." },
+  "plugins": [
+    {
+      "name": "handlus",
+      "source": "./plugins/handlus",
+      "description": "Record a Chrome window with a fake cursor while your agent drives it through Handlus (macOS).",
+      "version": "0.3.1",
+      "category": "productivity",
+      "homepage": "https://handlus.com"
+    }
+  ]
+}
