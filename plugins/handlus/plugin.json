@@ -1,11 +1,11 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "handlus",
-  "version": "0.3.1",
-  "description": "Handlus skills for AI agents that drive your own Chrome — record a Chrome window with a fake cursor (macOS).",
+  "version": "0.4.0",
+  "description": "Handlus skills for AI agents that drive your own Chrome: do web steps (API keys, dashboard settings) in your signed-in Chrome, and record a Chrome window with a fake cursor (macOS).",
   "author": { "name": "Handlus", "email": "support@handlus.com", "url": "https://handlus.com" },
   "homepage": "https://handlus.com",
   "repository": "https://github.com/handlus/plugins",
   "license": "SEE LICENSE IN LICENSE",
-  "keywords": ["chrome", "mcp", "screen-recording", "demo", "cursor", "handlus"]
+  "keywords": ["chrome", "mcp", "api-keys", "dashboard", "screen-recording", "demo", "cursor", "handlus"]
 }

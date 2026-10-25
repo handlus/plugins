@@ -6,8 +6,8 @@
     {
       "name": "handlus",
       "source": "./plugins/handlus",
-      "description": "Record a Chrome window with a fake cursor while your agent drives it through Handlus (macOS).",
-      "version": "0.3.1",
+      "description": "Do web steps such as getting API keys in your own signed-in Chrome, and record a Chrome window with a fake cursor (macOS).",
+      "version": "0.4.0",
       "category": "productivity",
       "homepage": "https://handlus.com"
     }
