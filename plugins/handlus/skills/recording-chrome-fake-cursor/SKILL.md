@@ -1,6 +1,6 @@
 ---
 name: recording-chrome-fake-cursor
-description: Record a real Chrome window on macOS while an AI agent drives it, with a visible fake mouse cursor that glides, clicks with an orange ripple and types one letter at a time — without moving the real mouse, so you can keep working. Use for product demos, tutorials, reels, shorts and lecture clips of Chrome being operated through Handlus (or another Chrome MCP). Also when a recording froze, showed Chrome's "started debugging this browser" bar, captured a covered window, or failed with a screen-recording permission (TCC) error. 크롬 화면 녹화 · 가짜 커서 · 마우스가 움직이는 영상 · 클릭할 때 주황 원 · 한 글자씩 입력되는 화면 · 핸들러스로 조작하며 찍기.
+description: Record a real Chrome window on macOS while an AI agent drives it, with a visible fake mouse cursor that glides, clicks with an orange ripple and types one letter at a time — without moving the real mouse, so you can keep working. Use for product demos, tutorials, reels, shorts and lecture clips of Chrome being operated through Handlus (or another Chrome MCP). Also when a recording froze, showed Chrome's "started debugging this browser" bar, captured a covered window, or failed with a screen-recording permission (TCC) error, and to set up or check recording on a Mac ("set up recording", "is recording ready", installing ffmpeg or the Screen Recording permission). 크롬 화면 녹화 · 가짜 커서 · 마우스가 움직이는 영상 · 클릭할 때 주황 원 · 한 글자씩 입력되는 화면 · 핸들러스로 조작하며 찍기 · 녹화 준비해 줘 · 녹화 설치 · 화면 기록 권한.
 ---
 
 # Fake-cursor Chrome window recording (macOS)
@@ -11,16 +11,32 @@ The real mouse never moves, so the user can keep working on another screen. Beca
 
 Scripts live next to this file: `K="${CLAUDE_SKILL_DIR}/scripts"` (in Codex, or if that variable is not substituted, use the `scripts/` folder beside this SKILL.md).
 
-## Requirements
+## 0. Setup — run this first, every time
 
-- macOS 13 or later · Xcode Command Line Tools (`xcode-select --install`, for `swiftc`) · `ffmpeg` and `ffprobe` (`brew install ffmpeg`) · `python3`
-- **Screen Recording permission** for the terminal app that runs the commands (System Settings → Privacy & Security → Screen & System Audio Recording). Open it with `open "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"` — the user flips the switch
-- **Handlus extension 0.3.1+** connected (remote MCP `https://api.handlus.com/mcp`). It provides `chrome_demo_cursor`, which draws the cursor **without Chrome's debugger**. Older versions or other Chrome MCPs: use `scripts/cursor.js` (section 5-B)
-- The recorder `bin/screcord` is compiled on first use by `rec.sh` (or run `zsh $K/build.sh`)
+```bash
+zsh $K/setup.sh            # check only: one line per item, last line READY or NOT READY (exit 0 / 2)
+```
+
+It checks macOS 13+, Xcode Command Line Tools (`swiftc`), `python3`, `ffmpeg` and `ffprobe`, Google Chrome, builds the recorder `bin/screcord`, and asks ScreenCaptureKit for windows to test the **Screen Recording permission** of the terminal app running you.
+
+If it prints `NOT READY`:
+1. Tell the user, in their language, what is missing and what installing it means (ffmpeg comes from Homebrew; the permission is a switch in System Settings). Ask once, then run
+   ```bash
+   zsh $K/setup.sh install    # installs ffmpeg (brew), builds the recorder, opens the dialogs, then checks again
+   ```
+2. Hand over only the steps a person has to do, one at a time, and wait for them:
+   - **Command Line Tools**: a macOS dialog opens; they click Install and wait a few minutes. Then run `setup.sh install` again
+   - **Homebrew** (only if missing): they paste the command `setup.sh install` printed into their own terminal; it asks for their Mac password. Do not run it yourself
+   - **Screen Recording**: System Settings opens on Privacy & Security → Screen & System Audio Recording. They turn on the app `setup.sh` names (the terminal or editor running you; under tmux, the app that started tmux), then **quit and reopen that app** — macOS applies it only after a restart, so this session ends there. Tell them to start you again and say "record" when it is back
+3. Run `zsh $K/setup.sh` again. Record only after `READY`.
+
+Then check Handlus from your tools: `chrome_list_browsers` must answer (if the Handlus tools are missing, give the user `claude mcp add --transport http --scope user handlus https://api.handlus.com/mcp` or `codex mcp add handlus --url https://api.handlus.com/mcp` and the extension link https://handlus.com), and `chrome_demo_cursor` must be in your tool list (Handlus extension 0.3.1+, which draws the cursor **without Chrome's debugger**). Without it, update the extension, or use `scripts/cursor.js` (section 5-B).
+
+Do not reset or edit macOS privacy settings yourself (no `tccutil`), and do not click permission prompts for the user.
 
 ## Rules
 
-1. Drive Chrome only through MCP (open windows, cursor, schedule). The shell only runs `rec.sh`, `evidence.py` and `sheet.py`
+1. Drive Chrome only through MCP (open windows, cursor, schedule). The shell only runs `setup.sh`, `rec.sh`, `evidence.py` and `sheet.py`
 2. **Never press buttons that leave a trace outside the page** — publish, send, pay, connect, delete. Hover the cursor over them for the shot and cancel afterwards
 3. Close only the windows and tabs you opened. Do not launch a new Chrome process
 4. Do not record sites whose terms forbid automation, and keep personal data (names, emails, other accounts) out of the frame
@@ -86,6 +102,7 @@ python3 $K/evidence.py check REC.mp4     # must pass before you hand the video o
 ## Quick reference
 
 ```bash
+zsh $K/setup.sh [install]             # what is missing (and install it)
 zsh $K/build.sh                       # rebuild bin/screcord
 $K/bin/screcord screens               # displays (name · top-left · size · scale)
 $K/bin/screcord list                  # Chrome windows (id · position · title)

@@ -38,10 +38,15 @@ codex mcp add handlus --url https://api.handlus.com/mcp                         
 
 The fake cursor (`chrome_demo_cursor`) needs Handlus extension **0.3.1 or later**. With older versions or other Chrome MCPs the skill falls back to injecting `scripts/cursor.js`.
 
-## Requirements (recording)
+## Set up recording (macOS, once)
 
-- macOS 13+, Xcode Command Line Tools (`xcode-select --install`), `ffmpeg` (`brew install ffmpeg`), `python3`
-- Screen Recording permission for your terminal app (System Settings → Privacy & Security → Screen & System Audio Recording)
+Ask your agent: *"Set up recording."* The skill runs `scripts/setup.sh`, tells you what is missing and installs what it can (`ffmpeg` through Homebrew, the recorder). You do the parts only a person can do:
+
+- **Xcode Command Line Tools** — click Install in the dialog that opens
+- **Homebrew** (only if you do not have it) — paste the command it gives you; it asks for your Mac password
+- **Screen Recording permission** for the app running the agent (Terminal, iTerm, VS Code, Cursor…) — System Settings → Privacy & Security → Screen & System Audio Recording opens; turn the app on, then quit and reopen it
+
+Requirements in short: macOS 13+, Xcode Command Line Tools, `ffmpeg`, `python3`, Google Chrome, Screen Recording permission. Check any time with `zsh <skill folder>/scripts/setup.sh`.
 
 ---
 
@@ -54,5 +59,6 @@ The fake cursor (`chrome_demo_cursor`) needs Handlus extension **0.3.1 or later*
 - **클로드코드**: `/plugin marketplace add handlus/plugins` → `/plugin install handlus@handlus`
 - **코덱스**: `codex plugin marketplace add handlus/plugins` → `codex plugin add handlus@handlus`. 스킬만 쓰려면 스킬 폴더를 `~/.codex/skills/` 에 복사
 - Handlus 연결은 위 명령 한 줄. 가짜 커서 도구는 Handlus 확장 0.3.1 이상에서 됩니다.
+- **녹화 준비(맥, 한 번)**: 에이전트에게 「녹화 준비해 줘」 라고 하면 스킬이 `scripts/setup.sh` 로 빠진 것을 찾아 알려 주고, 깔 수 있는 것(Homebrew 로 ffmpeg, 녹화기)은 설치합니다. 사람이 해야 하는 것만 남깁니다: 명령줄 도구 설치 창의 「설치」, Homebrew 가 없을 때 그 설치 명령(맥 비밀번호를 묻습니다), 에이전트를 돌리는 앱(터미널 · iTerm · VS Code · Cursor 등)의 「화면 기록」 권한 켜고 그 앱 다시 열기.
 
 Copyright (c) 2026 Handlus. See [LICENSE](LICENSE).

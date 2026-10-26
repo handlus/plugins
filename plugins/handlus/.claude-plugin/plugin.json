@@ -1,6 +1,6 @@
 {
   "name": "handlus",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Handlus skills for AI agents that drive your own Chrome: do web steps (API keys, dashboard settings) in your signed-in Chrome, and record a Chrome window with a fake cursor (macOS).",
   "author": { "name": "Handlus", "url": "https://handlus.com" },
   "homepage": "https://handlus.com",
