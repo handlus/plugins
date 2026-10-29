@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "handlus",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Handlus skills for AI agents that drive your own Chrome: do web steps (API keys, dashboard settings) in your signed-in Chrome, and record a Chrome window with a fake cursor (macOS).",
   "author": { "name": "Handlus", "email": "support@handlus.com", "url": "https://handlus.com" },
   "homepage": "https://handlus.com",

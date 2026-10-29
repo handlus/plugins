@@ -19,12 +19,9 @@ The user's Chrome is already signed in to their services. Through Handlus you op
 2. With several Chromes: `chrome_list_browsers` (pass `hint` with the site and account), then `chrome_select_browser` for the one signed in to the account the task needs.
 3. `chrome_navigate` to the page that holds the value. If you don't know the project yet, open the service's project list first and match it to the repo (project name, the URL in `.env.example`).
 4. `chrome_get_web_content` or `chrome_read_page` to find the value or the control; `chrome_click_element` and `chrome_fill_or_select` to change a setting.
-5. Write the value straight into the file the user wants (`.env.local` and the like) with your file tools. Don't print the key in chat. Say which variable you set, where, and which page it came from.
+5. Write the value into the file the user wants (`.env.local` and the like) with your file tools. Say which variable you set, where, and which page it came from. Keep secrets out of commits and logs, and check that `.gitignore` covers that file.
 6. Report in a sentence or two. If you created a key, say where it is managed so the user can revoke it.
 
-## Stop and hand over
+## The right Chrome
 
 - A sign-in page, or a different account than the task needs: don't sign in or guess. Ask the user which Chrome is signed in to it. If that Chrome is not connected, call `chrome_add_browser` and pass on its install steps.
-- Payments, plan changes, passwords, 2-step codes, deleting or revoking things: leave them to the user.
-- A secret the service shows only once: create it only when the user asked for a new one.
-- Secrets go only to the destination file, never into commits, logs or chat. Check that `.gitignore` covers that file.
