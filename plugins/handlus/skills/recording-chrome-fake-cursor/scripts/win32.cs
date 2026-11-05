@@ -212,7 +212,7 @@ public static class HandlusWgc
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate void UnmapFn(IntPtr self, IntPtr res, uint sub);
 
     static Guid IID_IDXGIDevice = new Guid("54ec77fa-1377-44e6-8c32-88fd5f44c84c");
-    static Guid IID_IDirect3DDevice = new Guid("a37624ab-8d5f-4650-9d3e-9eaae3d9f42f");
+    static Guid IID_IDirect3DDevice = new Guid("a37624ab-8d5f-4650-9d3e-9eae3d9bc670");
     static Guid IID_ItemInterop = new Guid("3628e81b-3cac-4c60-b7f4-23ce0e0c3356");
     static Guid IID_Item = new Guid("79c3f95b-31f7-4ec2-a464-632ef5d30760");
     static Guid IID_PoolStatics2 = new Guid("589b103f-6bbc-5df5-a991-02e28b3b66d5");

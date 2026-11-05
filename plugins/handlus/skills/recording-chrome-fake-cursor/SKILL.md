@@ -5,7 +5,7 @@ description: Record a real Chrome window on macOS or Windows while an AI agent d
 
 # Fake-cursor Chrome window recording (macOS · Windows)
 
-The agent drives Chrome through **Handlus** and draws a **fake cursor** in the page; a window recorder captures **that one Chrome window** (ScreenCaptureKit on macOS, Windows.Graphics.Capture through ffmpeg on Windows).
+The agent drives Chrome through **Handlus** and draws a **fake cursor** in the page; a window recorder captures **that one Chrome window** (ScreenCaptureKit on macOS, Windows.Graphics.Capture on Windows).
 The cursor moves in a slight arc, shrinks and spreads an orange ring when it clicks, and types character by character, then really clicks and types on the page.
 The real mouse never moves, so the user can keep working on another screen. Because it is a window recording, other windows partly overlapping it do not show up.
 

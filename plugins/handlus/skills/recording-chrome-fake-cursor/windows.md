@@ -3,8 +3,10 @@
 Use these commands in place of the macOS ones in SKILL.md when you run on Windows. The rules, shot list, cursor
 (`chrome_demo_cursor` or `scripts/cursor.js`), evidence and traps in SKILL.md stay the same.
 
-Recording uses **ffmpeg's window capture (Windows.Graphics.Capture, FFmpeg 8.1+)**: only the Chrome window is recorded,
-windows partly over it do not show up, and the real mouse pointer is not drawn. There is no permission to turn on.
+Recording uses **Windows.Graphics.Capture** (built into Windows, the API the Snipping Tool uses) through `scripts/win32.cs`,
+which `rec.ps1` compiles on the fly: only the Chrome window is recorded, windows partly over it do not show up, and the
+real mouse pointer is not drawn. It works with or without a graphics card. ffmpeg only encodes the frames (H.264, 60 per
+second). There is no permission to turn on.
 
 ## How to call the scripts
 
@@ -35,8 +37,8 @@ a company policy blocks PowerShell scripts: tell the user; do not try to change 
 ```bash
 SETUP              # one line per item, last line READY or NOT READY (exit 0 / 2)
 ```
-It checks Windows 10 2004+ / 11, ffmpeg 8.1+ with window capture and an H.264 encoder, Python 3 and Pillow, Google Chrome,
-and records one open Chrome window for 1 s (skipped if no Chrome window is open).
+It checks Windows 10 2004+ / 11, ffmpeg with an H.264 encoder, Python 3 and Pillow, Google Chrome, and records one open
+Chrome window for 1 s (skipped if no Chrome window is open).
 
 If it prints `NOT READY`: tell the user what is missing and what installing it means, ask once, then
 ```bash
@@ -91,7 +93,9 @@ PY "$K\evidence.py" check REC.mp4
 | Frozen picture in part of the video | The recording window was **fully** covered or minimized, so Chrome stopped painting it (Windows tells Chrome the window is hidden) | Keep the window uncovered and not minimized; `evidence.py write` fails such a take |
 | `place` prints `fg=no` | Foreground lock: Windows lets only the app you are using change the front window | `chrome_switch_tab` on the tab, then check nothing covers it |
 | `STOP: a …x… window does not fit` | Display scale is high (150%: a 1920×1080 screen is 1280×720 logical) | Let it choose (unset `REC_W`/`REC_H`) or use another display |
-| `cannot capture a single window` / `ffmpeg not found` | No ffmpeg, or one older than 8.1 or built without `gfxcapture` | `SETUP install` (it prefers its own copy in `scripts\bin\ffmpeg`); or set `HANDLUS_FFMPEG` to a capable ffmpeg.exe |
+| `ffmpeg not found` / `has no H.264 encoder` | No ffmpeg, or a build without libx264 and h264_mf | `SETUP install` (it puts one in `scripts\bin\ffmpeg`); or set `HANDLUS_FFMPEG` to another ffmpeg.exe |
+| `rec_slow: … frames were written late` | The computer could not encode 60 frames a second (the take would stutter) | Close heavy apps, `HANDLUS_X264=ultrafast`, or a smaller window (`REC_W` / `REC_H`); record again |
+| `STOP: window capture: …` | Windows refused to capture that window (minimized, closed, or Windows older than 10 2004) | Restore the window, check `SETUP`; the message names the failing step |
 | `python` opens the Microsoft Store or does nothing (exit 9009) | Store placeholder | Use the command `setup.ps1` printed (`py -3`) |
 | `running scripts is disabled on this system` even with `-ExecutionPolicy Bypass` | Company group policy | Tell the user; do not change policy |
 | Yellow frame around the window while recording (Windows 10) | Windows' capture indicator | On screen only, not in the video |

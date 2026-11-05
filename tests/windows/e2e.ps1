@@ -23,7 +23,7 @@ Check ($rc1 -eq 2 -and $s1 -match 'NOT READY') 'setup.ps1 reports NOT READY befo
 
 Log 'setup install'
 $s2 = Setup install 2>&1 | Out-String; $rc2 = $LASTEXITCODE; $s2
-Check ($s2 -match 'ok\s+ffmpeg') 'setup.ps1 install leaves an ffmpeg with window capture'
+Check ($s2 -match 'ok\s+ffmpeg') 'setup.ps1 install leaves an ffmpeg with an H.264 encoder'
 Check ($s2 -match 'ok\s+Pillow') 'setup.ps1 install leaves Pillow'
 $py = if ($s2 -match "run the skill's \.py scripts with: (.+)\)") { $Matches[1].Trim() } else { 'python' }
 "python command: $py"
@@ -67,7 +67,8 @@ function Take([string]$name, [string]$scene, [scriptblock]$during) {
   $len = if ($scene -eq 'cover') { 10 } else { 8 }
   $mp4 = Join-Path $out "$name.mp4"
   $r = Rec record $T0 $len $mp4 2>&1 | Out-String; $rrc = $LASTEXITCODE; $r
-  Check ($rrc -eq 0 -and $r -match 'rec_started \d+' -and (Test-Path $mp4)) "[$name] record saves the video"
+  $recorded = ($rrc -eq 0 -and $r -match 'rec_started \d+' -and (Test-Path $mp4))
+  Check $recorded "[$name] record saves the video"
   if ($job) { Receive-Job $job -Wait -AutoRemoveJob | Out-Null }
   Start-Sleep 1
   $fcl = Join-Path $out "$name.fclog.json"
@@ -76,10 +77,11 @@ function Take([string]$name, [string]$scene, [scriptblock]$during) {
   "stats: $(Py (Join-Path $PSScriptRoot 'drive.py') stats)"
   $ev = Py (Join-Path $K 'evidence.py') write $mp4 --monitor $slot.Mon --scale $slot.Scale --profile ci --url $page --fclog $fcl --action $scene 2>&1 | Out-String
   $erc = $LASTEXITCODE; $ev
-  return @{ slot = $slot; mp4 = $mp4; evidence = $erc; T0 = $T0; rec = $r }
+  return @{ slot = $slot; mp4 = $mp4; evidence = $erc; T0 = $T0; rec = $r; recorded = $recorded }
 }
 
 function Px($mp4, [double]$t, [int]$x, [int]$y) {
+  if (-not (Test-Path $mp4)) { return [System.Drawing.Color]::Black }
   $png = "$mp4.$t.png"
   $ff = (Rec ffmpeg | Select-String '^ffmpeg: (.+)$').Matches[0].Groups[1].Value
   & $ff -hide_banner -loglevel error -y -ss $t -i $mp4 -frames:v 1 $png 2>&1 | Out-Null
@@ -112,7 +114,7 @@ $fullCover = { param($T0, $slot, $cover)
   $wait = $T0 + 2500 - [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds(); if ($wait -gt 0) { Start-Sleep -Milliseconds $wait }
   Start-Process powershell -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $cover, '-X', ($slot.X - 20), '-Y', ($slot.Y - 20), '-W', ($slot.W + 40), '-H', ($slot.H + 40), '-Sec', '2' -Wait }
 $b = Take 'full' 'cover' $fullCover
-Check ($b.evidence -ne 0) '[full] evidence.py write FAILS a take whose window was fully covered'
+Check ($b.recorded -and $b.evidence -ne 0) '[full] evidence.py write FAILS a take whose window was fully covered'
 
 Log 'result'
 if ($script:fails.Count) { "FAILED: $($script:fails.Count)"; $script:fails | ForEach-Object { "  - $_" } } else { 'ALL PASSED' }
