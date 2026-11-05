@@ -55,15 +55,16 @@ function Cdp([string]$expr) {
   } catch { return "cdp eval failed: $_" }
 }
 function Cover($x, $y, $cw, $chh, $sec) { Start-Process powershell -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'cover.ps1'), '-X', $x, '-Y', $y, '-W', $cw, '-H', $chh, '-Sec', $sec -PassThru }
-function Probe($mp4) { & $fp -v error -select_streams v:0 -count_frames -show_entries 'stream=width,height,avg_frame_rate,nb_read_frames:format=duration' -of compact $mp4 2>&1 }
+function Probe($mp4) { & $fp -v error -select_streams v:0 -count_frames -show_entries 'stream=width,height,avg_frame_rate,nb_read_frames:format=duration' -of compact $mp4 2>&1 | Out-String }
 function Grab($mp4, $t, $png) { & $ff -hide_banner -loglevel error -y -ss $t -i $mp4 -frames:v 1 $png 2>&1 }
 function Px($png, $x, $y) { $b = New-Object System.Drawing.Bitmap $png; $c = $b.GetPixel($x, $y); $b.Dispose(); return ('#{0:x2}{1:x2}{2:x2}' -f $c.R, $c.G, $c.B) }
-# Distinct frames over time: md5 of each frame, then report runs of identical frames longer than 0.3 s
+# Still stretches (the page's box always moves, so a still picture means Chrome stopped painting or Windows sent nothing)
 function Frozen($mp4) {
-  $h = & $ff -hide_banner -loglevel error -i $mp4 -f framemd5 - 2>$null | Where-Object { $_ -notmatch '^#' } | ForEach-Object { ($_ -split ',')[-1].Trim() }
-  $runs = @(); $start = 0
-  for ($i = 1; $i -le $h.Count; $i++) { if ($i -eq $h.Count -or $h[$i] -ne $h[$i - 1]) { if ($i - $start -ge 18) { $runs += ('{0:0.00}-{1:0.00}s' -f ($start / 60), ($i / 60)) }; $start = $i } }
-  "frames=$($h.Count) distinct=$(@($h | Select-Object -Unique).Count) still runs(>0.3s): $($runs -join ' ')"
+  $o = & $ff -hide_banner -nostats -i $mp4 -vf 'freezedetect=n=0.001:d=0.3' -an -f null - 2>&1 | Out-String
+  $st = @([regex]::Matches($o, 'freeze_start: ([0-9.]+)') | ForEach-Object { $_.Groups[1].Value })
+  $en = @([regex]::Matches($o, 'freeze_end: ([0-9.]+)') | ForEach-Object { $_.Groups[1].Value })
+  $runs = for ($i = 0; $i -lt $st.Count; $i++) { "$($st[$i])-$(if ($i -lt $en.Count) { $en[$i] } else { 'end' })s" }
+  "still stretches (>0.3 s): $(if ($runs) { $runs -join ' ' } else { 'none' })"
 }
 $enc = '-c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p'
 

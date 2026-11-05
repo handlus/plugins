@@ -114,7 +114,22 @@ $fullCover = { param($T0, $slot, $cover)
   $wait = $T0 + 2500 - [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds(); if ($wait -gt 0) { Start-Sleep -Milliseconds $wait }
   Start-Process powershell -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $cover, '-X', ($slot.X - 20), '-Y', ($slot.Y - 20), '-W', ($slot.W + 40), '-H', ($slot.H + 40), '-Sec', '2' -Wait }
 $b = Take 'full' 'cover' $fullCover
-Check ($b.recorded -and $b.evidence -ne 0) '[full] evidence.py write FAILS a take whose window was fully covered'
+# What Windows did while the window was fully covered: Chrome either marks the page hidden (and stops painting),
+# or does not notice the cover and keeps painting. The page's #box moves all the time, so a still stretch in the
+# video means painting stopped. The take must fail exactly when it is broken (hidden, or a still stretch).
+$fcl = Join-Path $out 'full.fclog.json'
+$hid = (Test-Path $fcl) -and ((Get-Content $fcl -Raw) -match ',\s*true\s*\]')
+$ff = (Rec ffmpeg | Select-String '^ffmpeg: (.+)$').Matches[0].Groups[1].Value
+$fz = if (Test-Path $b.mp4) { & $ff -hide_banner -nostats -i $b.mp4 -vf 'freezedetect=n=0.001:d=0.4' -an -f null - 2>&1 | Out-String } else { '' }
+$frozen = $fz -match 'freeze_start'
+"full cover: page hidden=$hid  still stretch in the video=$frozen"
+($fz -split "`n" | Where-Object { $_ -match 'freeze_' }) -join ' / '
+if ($hid -or $frozen) {
+  Check ($b.recorded -and $b.evidence -ne 0) '[full] evidence.py write FAILS the take (window hidden or picture stopped)'
+} else {
+  Check ($b.recorded -and $b.evidence -eq 0) '[full] Chrome kept painting under the cover, so the take passes'
+}
+Check (-not ($frozen -and -not $hid)) '[full] no still stretch without document.hidden (evidence would miss it)'
 
 Log 'result'
 if ($script:fails.Count) { "FAILED: $($script:fails.Count)"; $script:fails | ForEach-Object { "  - $_" } } else { 'ALL PASSED' }

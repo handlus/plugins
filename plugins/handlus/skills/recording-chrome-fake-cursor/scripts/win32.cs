@@ -293,7 +293,12 @@ public static class HandlusWgc
             Release(interop);
             long size; Check(Fn<GetLongFn>(item, 7)(item, out size), "GraphicsCaptureItem.Size");
             int cw = (int)(size & 0xffffffff), ch = (int)(size >> 32);
-            int w = cw & ~1, h = ch & ~1;
+            // The capture is the whole window rectangle, invisible resize borders included: the visible window sits
+            // at the top left and the borders come out as a black strip on the right and bottom. Keep only the
+            // visible frame (DWM extended frame bounds), which is the slot size rec.ps1 placed the window at.
+            var vis = HandlusRec.Describe(hwnd).Frame;
+            int vw = vis.R - vis.L, vh = vis.B - vis.T;
+            int w = (vw > 0 && vw < cw ? vw : cw) & ~1, h = (vh > 0 && vh < ch ? vh : ch) & ~1;
             if (w < 16 || h < 16) throw new Exception("window is too small or minimized (" + cw + "x" + ch + ")");
 
             IntPtr ps = Factory("Windows.Graphics.Capture.Direct3D11CaptureFramePool", IID_PoolStatics2);
@@ -314,14 +319,24 @@ public static class HandlusWgc
             ff = new Process(); ff.StartInfo = psi;
             ff.ErrorDataReceived += delegate (object o, DataReceivedEventArgs e) { if (e.Data != null) lock (ferr) { ferr.AppendLine(e.Data); FfmpegError = ferr.ToString(); } };
             ff.OutputDataReceived += delegate (object o, DataReceivedEventArgs e) { };
-            ff.Start(); ff.BeginErrorReadLine(); ff.BeginOutputReadLine();
+            // .NET writes the console input encoding's byte order mark into a redirected stdin as soon as the
+            // process starts (3 bytes when the console is UTF-8), which shifts every pixel by 3 bytes and swaps the
+            // colours. Start ffmpeg with an encoding that has none; if that cannot be set, pad the stream to the
+            // next frame boundary (one black frame).
+            Encoding inEnc = null;
+            try { inEnc = Console.InputEncoding; if (inEnc.GetPreamble().Length > 0) Console.InputEncoding = new UTF8Encoding(false); } catch { }
+            try { ff.Start(); }
+            finally { if (inEnc != null) { try { Console.InputEncoding = inEnc; } catch { } } }
+            ff.BeginErrorReadLine(); ff.BeginOutputReadLine();
             Stream sin = ff.StandardInput.BaseStream;
+            int bom = ff.StandardInput.Encoding.GetPreamble().Length;
 
             Check(Fn<NoArgFn>(session, 6)(session), "StartCapture");
             Console.WriteLine("size " + w + "x" + h + "  device=" + Device);
 
             byte[] buf = new byte[w * h * 4];
             long total = (long)Math.Round(seconds * 60), written = 0, fresh = 0, late = 0;
+            if (bom > 0) { sin.Write(buf, 0, buf.Length - bom); written = 1; }
             bool have = false;
             var sw = Stopwatch.StartNew();
             long startTicks = 0;
@@ -350,7 +365,12 @@ public static class HandlusWgc
                     for (int y = 0; y < h; y++) Marshal.Copy(new IntPtr(m.pData.ToInt64() + (long)y * m.RowPitch), buf, y * row, row);
                     Fn<UnmapFn>(ctx, 15)(ctx, staging, 0);
                     fresh++;
-                    if (!have) { have = true; startTicks = sw.ElapsedTicks; Console.WriteLine("rec_started " + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()); Console.Out.Flush(); }
+                    if (!have)
+                    {
+                        have = true; startTicks = sw.ElapsedTicks;
+                        Console.WriteLine("rec_started " + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()); Console.Out.Flush();
+                        Console.Error.WriteLine("capture " + cw + "x" + ch + " -> video " + w + "x" + h + (bom > 0 ? "  (stdin mark " + bom + " bytes, padded)" : ""));
+                    }
                 }
                 if (!have)
                 {
@@ -358,7 +378,7 @@ public static class HandlusWgc
                     Thread.Sleep(1); continue;
                 }
                 // frames due by now on a 60 per second clock; when a write was slow, catch up with repeats
-                long due = (long)((sw.ElapsedTicks - startTicks) * 60.0 / Stopwatch.Frequency) + 1;
+                long due = (long)((sw.ElapsedTicks - startTicks) * 60.0 / Stopwatch.Frequency) + 1 + (bom > 0 ? 1 : 0);
                 if (due > total) due = total;
                 if (due - written > 1) late += due - written - 1;
                 while (written < due) { sin.Write(buf, 0, buf.Length); written++; }

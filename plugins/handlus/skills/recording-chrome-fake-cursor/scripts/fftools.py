@@ -1,7 +1,8 @@
 """fftools.py — shared helpers for evidence.py · sheet.py · patch_lights.py (macOS and Windows).
 
 - find("ffmpeg") / find("ffprobe"): HANDLUS_FFMPEG (the exe or its folder) → PATH → Homebrew (macOS)
-  → winget (Windows: WinGet\\Links, then WinGet\\Packages\\…\\bin). winget changes PATH only for new shells,
+  → the copy setup.ps1 install puts in scripts\\bin\\ffmpeg (Windows) → winget (WinGet\\Links, then
+  WinGet\\Packages\\…\\bin). Same order as rec.ps1. winget changes PATH only for new shells,
   so a just-installed ffmpeg is found here before the agent restarts.
 - utf8_stdio(): Windows pipes default to the ANSI code page (cp949, cp1252 …) and printing ✅ would crash.
 - read_text(path): UTF-8 with or without BOM, or UTF-16 (Windows PowerShell 5.1 `>` and Out-File write UTF-16).
@@ -20,6 +21,7 @@ def _candidates(name):
         yield w
     for d in ("/opt/homebrew/bin", "/usr/local/bin"):
         yield os.path.join(d, name)
+    yield os.path.join(os.path.dirname(os.path.abspath(__file__)), "bin", "ffmpeg", "bin", name + EXE)
     la = os.environ.get("LOCALAPPDATA")
     if la:
         yield os.path.join(la, "Microsoft", "WinGet", "Links", name + EXE)
