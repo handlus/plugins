@@ -31,8 +31,12 @@ function Py { $a = @($args); if ($py -eq 'py -3') { & py -3 @a } else { & ($py.T
 Log 'chrome'
 $chrome = @("$env:ProgramFiles\Google\Chrome\Application\chrome.exe", "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
 $page = 'file:///' + ((Join-Path $PSScriptRoot 'page.html') -replace '\\', '/') + '?rec=ci'
-Start-Process $chrome -ArgumentList "--user-data-dir=$env:TEMP\chr-e2e", '--no-first-run', '--no-default-browser-check', '--disable-features=Translate', '--remote-debugging-port=9222', '--window-position=40,40', '--window-size=900,600', $page
-Start-Sleep 6
+Start-Process $chrome -ArgumentList "--user-data-dir=$env:TEMP\chr-e2e", '--no-first-run', '--no-default-browser-check', '--disable-search-engine-choice-screen', '--disable-features=Translate', '--remote-debugging-port=9222', '--window-position=40,40', '--window-size=900,600', $page
+# A cold Chrome on the runner takes more than 6 s to show its first window
+for ($i = 0; $i -lt 60; $i++) {
+  Start-Sleep 1
+  if (@([HandlusRec]::Windows('Chrome_WidgetWin_1') | Where-Object { $_.Visible -and $_.Title -like '__rec_ci*' }).Count) { "chrome window after $($i + 1) s"; break }
+}
 Py -m pip install --user --quiet --disable-pip-version-check websocket-client 2>&1 | Select-Object -Last 2
 
 Log 'setup (check) with a Chrome window open'

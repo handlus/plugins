@@ -64,7 +64,10 @@ function Install-Ffmpeg {
   $url = $null
   try {
     $rel = Invoke-RestMethod 'https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest' -Headers @{ 'User-Agent' = 'handlus-recording-setup' } -UseBasicParsing
-    $a = $rel.assets | Where-Object { $_.name -match "^ffmpeg-n8\.\d+.*-$arch-gpl-8\.\d+\.zip$" } | Sort-Object name -Descending | Select-Object -First 1
+    # Release builds are named ffmpeg-n<major>.<minor>-latest-<arch>-gpl-<major>.<minor>.zip; take the newest that is 8.1 or later
+    $a = $rel.assets | Where-Object { $_.name -match "^ffmpeg-n(\d+)\.(\d+)-latest-$arch-gpl-\d+\.\d+\.zip$" } |
+      ForEach-Object { $null = $_.name -match '^ffmpeg-n(\d+)\.(\d+)'; [pscustomobject]@{ a = $_; v = [int]$Matches[1] * 100 + [int]$Matches[2] } } |
+      Where-Object { $_.v -ge 801 } | Sort-Object v -Descending | Select-Object -First 1 | ForEach-Object { $_.a }
     if (-not $a) { $a = $rel.assets | Where-Object { $_.name -eq "ffmpeg-master-latest-$arch-gpl.zip" } | Select-Object -First 1 }
     if ($a) { $url = $a.browser_download_url }
   } catch { }

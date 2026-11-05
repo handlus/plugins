@@ -25,7 +25,7 @@
     const gap = now - last; last = now; raf++;
     if (gap > 300) mark('raf-gap:' + Math.round(gap));
     if (gap > maxGap) maxGap = gap;
-    document.getElementById('box').style.left = ((now / 4) % 900) + 'px';
+    if (!window.__still) document.getElementById('box').style.left = ((now / 4) % 900) + 'px';
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);

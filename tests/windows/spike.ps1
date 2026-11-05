@@ -125,28 +125,37 @@ function Probe($mp4) { & $fp -v error -select_streams v:0 -show_entries 'stream=
 function Desk($png) { $b = New-Object System.Drawing.Bitmap 1920, 1080; $g = [System.Drawing.Graphics]::FromImage($b); $g.CopyFromScreen(0, 0, 0, 0, $b.Size); $b.Save($png); $g.Dispose(); $b.Dispose() }
 
 $vf = 'hwdownload,format=bgra,crop=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p'
-$opts = @('capture_cursor=0:display_border=0', 'capture_cursor=0', '')
-foreach ($o in $opts) {
-  Log "record A (half covered) opts='$o'"
-  $mp4 = Join-Path $out "A-$($opts.IndexOf($o)).mp4"
-  $src = "gfxcapture=hwnd=$($w.Hwnd)" + $(if ($o) { ":$o" } else { '' })
-  $fa = "-hide_banner -y -progress pipe:1 -stats_period 0.1 -filter_complex $src,$vf -t 6 -fps_mode passthrough -c:v libx264 -preset veryfast -crf 18 $mp4"
+Log 'video adapters'
+Get-CimInstance Win32_VideoController | ForEach-Object { "adapter: $($_.Name) | $($_.AdapterCompatibility) | $($_.DriverVersion) | $($_.PNPDeviceID)" }
+
+# gfxcapture makes its own D3D11 device with D3D_DRIVER_TYPE_HARDWARE; a GPU-less VM may need one handed in (WARP adapter)
+$devs = @('', '-init_hw_device d3d11va=hw:0 -filter_hw_device hw', '-init_hw_device d3d11va=hw:1 -filter_hw_device hw', '-init_hw_device d3d11va=hw,vendor_id=0x1414 -filter_hw_device hw')
+$dev = $null
+foreach ($d in $devs) {
+  $k = $devs.IndexOf($d)
+  Log "record A (half covered) dev='$d'"
+  $mp4 = Join-Path $out "A-$k.mp4"
+  $fa = "-hide_banner -loglevel verbose -y -progress pipe:1 -stats_period 0.1 $d -filter_complex gfxcapture=hwnd=$($w.Hwnd):capture_cursor=0:display_border=0,$vf -t 6 -fps_mode passthrough -c:v libx264 -preset veryfast -crf 18 $mp4"
   $cover = Start-Process powershell -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'cover.ps1'), '-X', '50', '-Y', '300', '-W', '500', '-H', '300', '-Sec', '4' -PassThru
   $rc = [HandlusRec]::RunFfmpeg($ff, $fa, 20000)
   "exit $rc"
-  if ($rc -ne 0) { [HandlusRec]::LastError | Select-Object -Last 20; continue }
+  [HandlusRec]::LastError -split "`n" | Where-Object { $_ -match 'd3d|D3D|[Dd]evice|adapter|Client area|window rect|gfxcapture.*(size|Using|Capture)' } | Select-Object -First 25
+  if ($rc -ne 0) { if ($cover -and -not $cover.HasExited) { $cover.WaitForExit(6000) | Out-Null }; continue }
+  $dev = $d
   Probe $mp4
-  $png = Join-Path $out "A-$($opts.IndexOf($o)).png"; Grab $mp4 2.5 $png
+  $png = Join-Path $out "A-$k.png"; Grab $mp4 2.5 $png
   # cover occupies screen 50..550 x 300..600; window frame starts at 100,100 -> window-relative 0..450 x 200..500
   "pixel in covered area (window 200,350): $(Px $png 200 350)   uncovered (window 800,600): $(Px $png 800 600)   top-left 2,2: $(Px $png 2 2)"
-  Desk (Join-Path $out "A-$($opts.IndexOf($o))-desktop.png")
+  Desk (Join-Path $out "A-$k-desktop.png")
   break
 }
+if ($null -eq $dev) { Log 'NO DEVICE WORKED - window capture cannot run on this machine'; Stop-Transcript | Out-Null; exit 0 }
+"device args that work: '$dev'"
 
 Log 'record B (fully covered for 3 s)'
 $before = Stats; "title before: $before"
 $mp4 = Join-Path $out 'B.mp4'
-$fa = "-hide_banner -y -progress pipe:1 -stats_period 0.1 -filter_complex gfxcapture=hwnd=$($w.Hwnd):capture_cursor=0,$vf -t 8 -fps_mode passthrough -c:v libx264 -preset veryfast -crf 18 $mp4"
+$fa = "-hide_banner -y -progress pipe:1 -stats_period 0.1 $dev -filter_complex gfxcapture=hwnd=$($w.Hwnd):capture_cursor=0,$vf -t 8 -fps_mode passthrough -c:v libx264 -preset veryfast -crf 18 $mp4"
 $job = Start-Job -ScriptBlock { param($p) Start-Sleep 2; Start-Process powershell -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $p, '-X', '0', '-Y', '0', '-W', '1920', '-H', '1080', '-Sec', '3' -Wait } -ArgumentList (Join-Path $PSScriptRoot 'cover.ps1')
 $rc = [HandlusRec]::RunFfmpeg($ff, $fa, 25000)
 "exit $rc"
@@ -171,6 +180,55 @@ try {
   $r = $ws.ReceiveAsync($seg, [Threading.CancellationToken]::None); $r.Wait()
   [Text.Encoding]::UTF8.GetString($buf, 0, $r.Result.Count)
 } catch { "cdp eval failed: $_" }
+
+function Cdp([string]$expr) {
+  try {
+    $t = (Invoke-RestMethod 'http://127.0.0.1:9222/json/list') | Where-Object { $_.type -eq 'page' } | Select-Object -First 1
+    $ws = New-Object System.Net.WebSockets.ClientWebSocket
+    $ws.ConnectAsync([Uri]$t.webSocketDebuggerUrl, [Threading.CancellationToken]::None).Wait()
+    $msg = @{ id = 1; method = 'Runtime.evaluate'; params = @{ expression = $expr; returnByValue = $true } } | ConvertTo-Json -Compress
+    $bytes = [Text.Encoding]::UTF8.GetBytes($msg)
+    $ws.SendAsync((New-Object ArraySegment[byte] -ArgumentList @(, $bytes)), 'Text', $true, [Threading.CancellationToken]::None).Wait()
+    $buf = New-Object byte[] 65536; $seg = New-Object ArraySegment[byte] -ArgumentList @(, $buf)
+    $r = $ws.ReceiveAsync($seg, [Threading.CancellationToken]::None); $r.Wait()
+    return [Text.Encoding]::UTF8.GetString($buf, 0, $r.Result.Count)
+  } catch { return "cdp eval failed: $_" }
+}
+
+# C: nothing moves on the page for 4 s -> how many frames does window capture deliver? (decides the fps check on Windows)
+Log 'record C (still page, 4 s)'
+Cdp 'window.__still = true'
+Start-Sleep 1
+foreach ($mode in 'passthrough', 'cfr') {
+  $mp4 = Join-Path $out "C-$mode.mp4"
+  $fm = if ($mode -eq 'cfr') { '-fps_mode cfr -r 60' } else { '-fps_mode passthrough' }
+  $fa = "-hide_banner -y -progress pipe:1 -stats_period 0.1 $dev -filter_complex gfxcapture=hwnd=$($w.Hwnd):capture_cursor=0,$vf -t 4 $fm -c:v libx264 -preset veryfast -crf 18 $mp4"
+  $rc = [HandlusRec]::RunFfmpeg($ff, $fa, 20000)
+  "C $mode exit $rc"; Probe $mp4
+  $n = (& $fp -v error -select_streams v:0 -count_frames -show_entries stream=nb_read_frames -of csv=p=0 $mp4 2>&1)
+  "C $mode frames read: $n"
+}
+# D: still page, the cursor moves (a 40 px element following a timer at 60 Hz) -> frames?
+Cdp "(() => { const d = document.createElement('div'); d.style.cssText = 'position:fixed;width:40px;height:40px;background:#000;left:0;top:300px'; document.body.appendChild(d); let x = 0; window.__mv = setInterval(() => { x = (x + 6) % 800; d.style.left = x + 'px'; }, 16); return 1; })()"
+$mp4 = Join-Path $out 'D.mp4'
+$fa = "-hide_banner -y -progress pipe:1 -stats_period 0.1 $dev -filter_complex gfxcapture=hwnd=$($w.Hwnd):capture_cursor=0,$vf -t 4 -fps_mode passthrough -c:v libx264 -preset veryfast -crf 18 $mp4"
+$rc = [HandlusRec]::RunFfmpeg($ff, $fa, 20000)
+"D exit $rc"; Probe $mp4
+Cdp 'clearInterval(window.__mv); window.__still = false'
+
+# E: window minimized during recording -> what does capture do (error, freeze, black)?
+Log 'record E (minimized for 2 s)'
+$mp4 = Join-Path $out 'E.mp4'
+$fa = "-hide_banner -y -progress pipe:1 -stats_period 0.1 $dev -filter_complex gfxcapture=hwnd=$($w.Hwnd):capture_cursor=0,$vf -t 6 -fps_mode passthrough -c:v libx264 -preset veryfast -crf 18 $mp4"
+$job = Start-Job -ScriptBlock { param($h)
+  Add-Type -Namespace W -Name U -MemberDefinition '[DllImport("user32.dll")] public static extern bool ShowWindow(System.IntPtr h, int n);'
+  Start-Sleep 2; [W.U]::ShowWindow([IntPtr]$h, 6) | Out-Null; Start-Sleep 2; [W.U]::ShowWindow([IntPtr]$h, 9) | Out-Null } -ArgumentList $w.Hwnd
+$rc = [HandlusRec]::RunFfmpeg($ff, $fa, 25000)
+"E exit $rc"; if ($rc -ne 0) { [HandlusRec]::LastError | Select-Object -Last 8 }
+Receive-Job $job -Wait | Out-Null
+Probe $mp4
+& $fp -v error -select_streams v:0 -show_entries frame=pts_time -of csv=p=0 $mp4 2>&1 | Out-File (Join-Path $out 'E-frames.txt')
+"page log after E: " + (Cdp 'JSON.stringify(window.__stats())')
 
 Log 'done'
 Stop-Transcript | Out-Null
