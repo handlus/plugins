@@ -1,0 +1,35 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>__rec_ci</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #ff00ff; font: 20px system-ui, sans-serif; overflow: hidden; }
+  #box { position: absolute; top: 120px; left: 0; width: 120px; height: 120px; background: #0044ff; }
+  #form { position: absolute; top: 320px; left: 80px; background: #fff; padding: 16px; border-radius: 8px; }
+  input { font: inherit; width: 360px; }
+  button { font: inherit; }
+  #out { margin-top: 8px; color: #333; }
+</style></head>
+<body>
+<div id="box"></div>
+<div id="form">
+  <input id="q" placeholder="type here"> <button id="go">Go</button>
+  <div id="out">-</div>
+</div>
+<script>
+  // Visibility and paint log for the recording tests: [ms since load, event, document.hidden]
+  const t0 = performance.now();
+  window.__vis = [];
+  let raf = 0, last = performance.now(), maxGap = 0;
+  const mark = (e) => window.__vis.push([Math.round(performance.now() - t0), e, document.hidden]);
+  document.addEventListener('visibilitychange', () => mark('visibility:' + document.visibilityState));
+  function tick(now) {
+    const gap = now - last; last = now; raf++;
+    if (gap > 300) mark('raf-gap:' + Math.round(gap));
+    if (gap > maxGap) maxGap = gap;
+    document.getElementById('box').style.left = ((now / 4) % 900) + 'px';
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  window.__stats = () => ({ raf, maxGap: Math.round(maxGap), hidden: document.hidden, vis: window.__vis });
+  document.getElementById('go').onclick = () => { document.getElementById('out').textContent = 'clicked: ' + document.getElementById('q').value; };
+</script>
+</body></html>

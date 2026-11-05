@@ -1,0 +1,28 @@
+name: windows-recording
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: test script under tests/windows
+        default: spike.ps1
+  push:
+    branches: [windows-support]
+    paths: ['tests/windows/**', 'plugins/handlus/skills/recording-chrome-fake-cursor/**', '.github/workflows/windows-recording.yml']
+jobs:
+  run:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: run
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests/windows/${{ inputs.script || 'spike.ps1' }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: out-${{ matrix.os }}
+          path: out/
