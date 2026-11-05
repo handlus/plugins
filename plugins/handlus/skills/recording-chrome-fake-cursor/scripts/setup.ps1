@@ -164,7 +164,8 @@ $chrome = Chrome-Path
 if ($chrome) { Ok "Google Chrome ($chrome)" } else { Miss 'Google Chrome' 'the user installs Chrome from https://www.google.com/chrome/' }
 
 if ($ffrc -eq 0) {
-  $pr = & $REC probe 2>&1 | Out-String
+  # In its own process: the recorder (C#) writes straight to the console, which a script call here cannot capture
+  $pr = & powershell -NoProfile -ExecutionPolicy Bypass -File $REC probe 2>&1 | Out-String
   $prc = $LASTEXITCODE
   if ($prc -eq 0) { Ok "window recording test (1 s of an open Chrome window$(if ($pr -match 'device=(\S+)') { ', ' + $Matches[1] + ' graphics' }))" }
   elseif ($prc -eq 6) { Info 'window recording not tested: no Chrome window is open (open one and run setup.ps1 again to test)' }

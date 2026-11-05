@@ -131,6 +131,30 @@ if ($hid -or $frozen) {
 }
 Check (-not ($frozen -and -not $hid)) '[full] no still stretch without document.hidden (evidence would miss it)'
 
+# ---------- 4. display scale 125 % and 150 % (size ladder on a smaller logical screen) ----------
+$ffp = Join-Path (Split-Path ((Rec ffmpeg | Select-String '^ffmpeg: (.+)$').Matches[0].Groups[1].Value)) 'ffprobe.exe'
+"display scale before: $([Res]::Scale())"
+foreach ($pct in 125, 150) {
+  Log "display scale $pct %"
+  $r = [Res]::SetScale($pct); Start-Sleep 4
+  "SetScale $pct -> $r  now: $([Res]::Scale())"
+  if ($r -ne 0) { Check $false "[scale $pct] the runner lets the test change the display scale"; continue }
+  Py (Join-Path $PSScriptRoot 'drive.py') title '__rec_scale' | Out-Null
+  $scr = Rec screens 2>&1 | Out-String; $scr
+  if ($scr -notmatch 'X=(-?\d+) Y=(-?\d+) W=(\d+) H=(\d+) SCALE=([0-9.]+) LW=(\d+) LH=(\d+)') { Check $false "[scale $pct] screens prints the slot"; continue }
+  $W = [int]$Matches[3]; $H = [int]$Matches[4]; $sc = [double]$Matches[5]; $LW = [int]$Matches[6]; $LH = [int]$Matches[7]
+  Check ([math]::Abs($sc - $pct / 100) -lt 0.01) "[scale $pct] screens reports SCALE=$($pct / 100) (got $sc)"
+  Check ($W -eq [math]::Round($LW * $sc) -and $H -eq [math]::Round($LH * $sc)) "[scale $pct] W x H = logical size x scale ($LW x $LH -> $W x $H)"
+  $pl = Rec place '__rec_scale' 2>&1 | Out-String; $prc = $LASTEXITCODE; $pl
+  Check ($prc -eq 0 -and $pl -match "(?m)^ok -?\d+,-?\d+ ${W}x${H}") "[scale $pct] place puts the window at $W x $H"
+  $mp4 = Join-Path $out "scale$pct.mp4"
+  $rr = Rec record ((Now-Ms) + 2000) 3 $mp4 2>&1 | Out-String; $rrc = $LASTEXITCODE; $rr
+  $vs = if (Test-Path $mp4) { (& $ffp -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 $mp4 | Out-String).Trim() } else { 'none' }
+  "video size: $vs"
+  Check ($rrc -eq 0 -and $vs -eq "$($W - $W % 2),$($H - $H % 2)") "[scale $pct] the video is the window size ($W x $H)"
+}
+"back to 100 %: $([Res]::SetScale(100))"; Start-Sleep 3
+
 Log 'result'
 if ($script:fails.Count) { "FAILED: $($script:fails.Count)"; $script:fails | ForEach-Object { "  - $_" } } else { 'ALL PASSED' }
 Stop-Transcript | Out-Null

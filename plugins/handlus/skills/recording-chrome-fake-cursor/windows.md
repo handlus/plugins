@@ -111,6 +111,6 @@ REC screens                           # displays and the recording slot
 REC list                              # Chrome windows (hwnd · visible frame · title)
 REC place <marker>                    # put the marked window in the slot
 REC record <T0ms> <sec> <out.mp4>     # record that window
-REC ffmpeg                            # which ffmpeg, and whether it can capture a window
+REC ffmpeg                            # which ffmpeg, and its H.264 encoder
 REC probe                             # 1 s test recording of an open Chrome window
 ```
