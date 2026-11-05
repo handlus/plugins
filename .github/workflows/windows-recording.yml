@@ -2,9 +2,9 @@ name: windows-recording
 on:
   workflow_dispatch:
     inputs:
-      script:
-        description: test script under tests/windows
-        default: spike.ps1
+      scripts:
+        description: JSON list of test scripts under tests/windows
+        default: '["spike.ps1","e2e.ps1"]'
   push:
     branches: [windows-support]
     paths: ['tests/windows/**', 'plugins/handlus/skills/recording-chrome-fake-cursor/**', '.github/workflows/windows-recording.yml']
@@ -14,15 +14,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2022, windows-2025]
+        script: ${{ fromJSON(inputs.scripts || '["spike.ps1","e2e.ps1"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: run
+      - name: ${{ matrix.script }}
         shell: powershell
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests/windows/${{ inputs.script || 'spike.ps1' }}
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests/windows/${{ matrix.script }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: out-${{ matrix.os }}
+          name: out-${{ matrix.os }}-${{ matrix.script }}
           path: out/

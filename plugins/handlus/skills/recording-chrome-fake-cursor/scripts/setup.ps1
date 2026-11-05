@@ -2,8 +2,11 @@
 #
 #   setup.ps1           check only. One line per item: "ok  ..." or "MISSING  ...  -> fix". Last line READY or NOT READY.
 #                       Exit 0 = ready, 2 = not
-#   setup.ps1 install   install what can be installed without administrator rights (ffmpeg with window capture,
-#                       Python, Pillow), then check again
+#   setup.ps1 install   install what can be installed without administrator rights (ffmpeg, Python, Pillow), then
+#                       check again
+#
+# The window is recorded with Windows.Graphics.Capture (built into Windows 10 2004+ / 11, see win32.cs); ffmpeg only
+# encodes the frames, so any ffmpeg with libx264 or h264_mf works.
 #
 # Run it as:  powershell -NoProfile -ExecutionPolicy Bypass -File <skill folder>\scripts\setup.ps1 [install]
 # Windows has no Screen Recording permission to turn on. Only the user can: approve an administrator (UAC) prompt if one
@@ -58,13 +61,13 @@ function Chrome-Path {
   return $null
 }
 
-# ffmpeg with the window capture filter (gfxcapture, FFmpeg 8.1+) into scripts\bin\ffmpeg, from the BtbN builds on GitHub
+# ffmpeg into scripts\bin\ffmpeg, from the BtbN builds on GitHub (a release build, GPL = with libx264)
 function Install-Ffmpeg {
   $arch = if ((Arch) -eq 'ARM64') { 'winarm64' } else { 'win64' }
   $url = $null
   try {
     $rel = Invoke-RestMethod 'https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest' -Headers @{ 'User-Agent' = 'handlus-recording-setup' } -UseBasicParsing
-    # Release builds are named ffmpeg-n<major>.<minor>-latest-<arch>-gpl-<major>.<minor>.zip; take the newest that is 8.1 or later
+    # Release builds are named ffmpeg-n<major>.<minor>-latest-<arch>-gpl-<major>.<minor>.zip; take the newest
     $a = $rel.assets | Where-Object { $_.name -match "^ffmpeg-n(\d+)\.(\d+)-latest-$arch-gpl-\d+\.\d+\.zip$" } |
       ForEach-Object { $null = $_.name -match '^ffmpeg-n(\d+)\.(\d+)'; [pscustomobject]@{ a = $_; v = [int]$Matches[1] * 100 + [int]$Matches[2] } } |
       Where-Object { $_.v -ge 801 } | Sort-Object v -Descending | Select-Object -First 1 | ForEach-Object { $_.a }
@@ -133,7 +136,7 @@ $name = if ($os) { $os.Caption } else { 'Windows' }
 if ($build -ge 19041) {
   Ok "$name (build $build, $(Arch))"
   if ($build -lt 22000) { Info 'Windows 10: Windows may draw a yellow frame around the window while it is recorded (on screen only)' }
-} else { Miss "$name (build $build)" 'window capture needs Windows 10 version 2004 (build 19041) or later - the user updates Windows' }
+} else { Miss "$name (build $build)" 'window recording needs Windows 10 version 2004 (build 19041) or later - the user updates Windows' }
 
 "ok       PowerShell $($PSVersionTable.PSVersion)"
 
@@ -142,11 +145,11 @@ $ffrc = $LASTEXITCODE
 if ($ffrc -eq 0) {
   $ver = if ($ffline -match 'version: (\S+)') { $Matches[1] } else { '?' }
   $enc = if ($ffline -match 'encoder: (\S+)') { $Matches[1] } else { '?' }
-  Ok "ffmpeg $ver with window capture (gfxcapture), encoder $enc"
+  Ok "ffmpeg $ver (encoder $enc)"
 } elseif ($ffline -match 'not found') {
-  Miss 'ffmpeg' 'setup.ps1 install downloads one with window capture into scripts\bin\ffmpeg'
+  Miss 'ffmpeg' 'setup.ps1 install downloads one into scripts\bin\ffmpeg'
 } else {
-  Miss 'ffmpeg with window capture' "the ffmpeg found cannot capture one window (needs 8.1+ with gfxcapture and libx264 or h264_mf); setup.ps1 install puts one in scripts\bin\ffmpeg. Found: $(($ffline -split "`n" | Select-Object -First 2) -join ' / ')"
+  Miss 'ffmpeg with an H.264 encoder' "the ffmpeg found has neither libx264 nor h264_mf; setup.ps1 install puts one in scripts\bin\ffmpeg. Found: $(($ffline -split "`n" | Select-Object -First 2) -join ' / ')"
 }
 
 $py = Find-Python
@@ -163,9 +166,9 @@ if ($chrome) { Ok "Google Chrome ($chrome)" } else { Miss 'Google Chrome' 'the u
 if ($ffrc -eq 0) {
   $pr = & $REC probe 2>&1 | Out-String
   $prc = $LASTEXITCODE
-  if ($prc -eq 0) { Ok 'window capture test (1 s of an open Chrome window)' }
-  elseif ($prc -eq 6) { Info 'window capture not tested: no Chrome window is open (open one and run setup.ps1 again to test)' }
-  else { Miss 'window capture test' "recording an open Chrome window failed: $(($pr -split "`n" | Where-Object { $_.Trim() } | Select-Object -First 4) -join ' / ')" }
+  if ($prc -eq 0) { Ok "window recording test (1 s of an open Chrome window$(if ($pr -match 'device=(\S+)') { ', ' + $Matches[1] + ' graphics' }))" }
+  elseif ($prc -eq 6) { Info 'window recording not tested: no Chrome window is open (open one and run setup.ps1 again to test)' }
+  else { Miss 'window recording test' "recording an open Chrome window failed: $(($pr -split "`n" | Where-Object { $_.Trim() } | Select-Object -Last 4) -join ' / ')" }
 }
 
 '-- Also needed (check from the agent, not the shell): the Handlus MCP connected, and chrome_demo_cursor in the tool list (Handlus extension 0.3.1+).'

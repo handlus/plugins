@@ -5,7 +5,10 @@
 #   rec.ps1 place <title-marker>           move the Chrome window whose title starts with the marker to the slot and raise it
 #   rec.ps1 record <T0ms> <sec> <out.mp4>  wait until T0-1.5s, then record that window only (prints rec_started)
 #   rec.ps1 probe                          record one open Chrome window for 1 s (setup.ps1 uses it)
-#   rec.ps1 ffmpeg                         print the ffmpeg this script uses and whether it can capture a window
+#   rec.ps1 ffmpeg                         print the ffmpeg this script uses to encode, and its H.264 encoder
+#
+# Recording itself is Windows.Graphics.Capture (win32.cs, HandlusWgc): only the window's own pixels, no real mouse
+# pointer, and it also works without a GPU driver. ffmpeg (any recent version) only encodes the frames to H.264.
 #
 # Run it as:  powershell -NoProfile -ExecutionPolicy Bypass -File <skill folder>\scripts\rec.ps1 <command> ...
 # Browser steps (open window, title marker, cursor) are done by the agent through MCP - see ../SKILL.md and ../windows.md
@@ -15,6 +18,7 @@
 #               1920x1200, 1600x1000, 1440x900, 1280x800, 1024x640 that fits the display's work area is used).
 #               The window and the video are that size times the display scale (125% -> x1.25).
 # HANDLUS_FFMPEG  ffmpeg.exe (or its folder) to use instead of the one found on PATH / winget / bin\ffmpeg
+# HANDLUS_X264    x264 preset (default veryfast; ultrafast when the machine cannot keep up)
 param(
   [Parameter(Position = 0)][string]$Cmd = '',
   [Parameter(Position = 1)][string]$A1 = '',
@@ -24,7 +28,7 @@ param(
 $ErrorActionPreference = 'Continue'   # 'Stop' turns any native stderr line into a terminating error in PowerShell 5.1
 try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } catch { }
 $HERE = $PSScriptRoot
-if (-not ('HandlusRec' -as [type])) { Add-Type -Path (Join-Path $HERE 'win32.cs') }
+if (-not ('HandlusWgc' -as [type])) { Add-Type -Path (Join-Path $HERE 'win32.cs') }
 
 function Err([string]$m) { [Console]::Error.WriteLine($m) }
 
@@ -52,28 +56,21 @@ function Find-Ffmpegs {
   foreach ($p in $c) { if ($p -and -not $seen.ContainsKey($p) -and (Test-Path $p -PathType Leaf)) { $seen[$p] = 1; $p } }
 }
 
-# The first ffmpeg that can record one window, else the first one found (to report why it cannot), else $null
+# The first ffmpeg that has an H.264 encoder, else the first one found (to report why it cannot), else $null
 function Best-Ffmpeg {
   $first = $null
   foreach ($ff in @(Find-Ffmpegs)) {
     $i = Ffmpeg-Info $ff
-    if ($i.gfx -and $i.hwnd -and $i.enc) { return $i }
+    if ($i.enc) { return $i }
     if (-not $first) { $first = $i }
   }
   return $first
 }
 
-# What this ffmpeg can do: window capture filter + its option names, and the H.264 encoder to use
+# Version and the H.264 encoder to use (libx264, else Media Foundation's h264_mf)
 function Ffmpeg-Info([string]$ff) {
-  $info = @{ exe = $ff; gfx = $false; hwnd = $false; cursor = $false; border = $false; enc = $null; version = '' }
+  $info = @{ exe = $ff; enc = $null; version = '' }
   $info.version = (& $ff -hide_banner -version 2>&1 | Select-Object -First 1) -replace '^ffmpeg version (\S+).*', '$1'
-  $h = (& $ff -hide_banner -h filter=gfxcapture 2>&1 | Out-String)
-  if ($h -match '(?m)^Filter gfxcapture') {
-    $info.gfx = $true
-    $info.hwnd = $h -match '(?m)^\s+hwnd\b'
-    $info.cursor = $h -match '(?m)^\s+capture_cursor\b'
-    $info.border = $h -match '(?m)^\s+display_border\b'
-  }
   $enc = (& $ff -hide_banner -encoders 2>&1 | Out-String)
   if ($enc -match '\blibx264\b') { $info.enc = 'libx264' } elseif ($enc -match '\bh264_mf\b') { $info.enc = 'h264_mf' }
   return $info
@@ -82,21 +79,15 @@ function Ffmpeg-Info([string]$ff) {
 function Need-Ffmpeg {
   $i = Best-Ffmpeg
   if (-not $i) { Err 'STOP: ffmpeg not found - run setup.ps1 install'; exit 5 }
-  $ff = $i.exe
-  if (-not $i.gfx -or -not $i.hwnd) { Err "STOP: $ff ($($i.version)) cannot capture a single window (needs FFmpeg 8.1+ with the gfxcapture filter) - run setup.ps1 install"; exit 5 }
-  if (-not $i.enc) { Err "STOP: $ff has no H.264 encoder (libx264 or h264_mf)"; exit 5 }
+  if (-not $i.enc) { Err "STOP: $($i.exe) ($($i.version)) has no H.264 encoder (libx264 or h264_mf) - run setup.ps1 install"; exit 5 }
   return $i
 }
 
-# ffmpeg arguments: one window by handle, no mouse pointer, no yellow border, even size, variable frame rate
-function Ffmpeg-Args($i, [long]$hwnd, [double]$sec, [string]$out) {
-  $src = "gfxcapture=hwnd=$hwnd"
-  if ($i.cursor) { $src += ':capture_cursor=0' }
-  if ($i.border) { $src += ':display_border=0' }
-  $vf = 'hwdownload,format=bgra,crop=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p'
-  $enc = if ($i.enc -eq 'libx264') { '-c:v libx264 -preset veryfast -crf 18' } else { '-c:v h264_mf -b:v 16M' }
-  $s = $sec.ToString([Globalization.CultureInfo]::InvariantCulture)
-  return "-hide_banner -y -progress pipe:1 -stats_period 0.1 -filter_complex $src,$vf -t $s -fps_mode passthrough $enc -movflags +faststart `"$out`""
+# Encoder arguments after the raw frames ffmpeg reads from the recorder
+function Encode-Args($i) {
+  $preset = if ($env:HANDLUS_X264) { $env:HANDLUS_X264 } else { 'veryfast' }
+  if ($i.enc -eq 'libx264') { return "-c:v libx264 -preset $preset -crf 18 -pix_fmt yuv420p -movflags +faststart" }
+  return '-c:v h264_mf -b:v 16M -pix_fmt nv12 -movflags +faststart'
 }
 
 # ---------- displays and windows ----------
@@ -152,12 +143,15 @@ function Record-Window($i, $w, [double]$sec, [string]$out) {
   $dir = Split-Path -Parent $out
   if ($dir -and -not (Test-Path $dir)) { New-Item -ItemType Directory -Force $dir | Out-Null }
   if (Test-Path $out) { Remove-Item $out -Force }
-  $fa = Ffmpeg-Args $i $w.Hwnd $sec $out
-  $rc = [HandlusRec]::RunFfmpeg($i.exe, $fa, [int](($sec + 20) * 1000))
-  if ($rc -ne 0 -or -not (Test-Path $out) -or (Get-Item $out).Length -eq 0) {
-    Err "rec_failed exit $rc"
-    ([HandlusRec]::LastError -split "`n" | Where-Object { $_.Trim() } | Select-Object -Last 12) | ForEach-Object { Err "  $_" }
-    return $false
+  $rc = [HandlusWgc]::Record($w.Hwnd, $sec, $i.exe, (Encode-Args $i), $out)
+  if ($rc -ne 0 -or -not (Test-Path $out) -or (Get-Item $out).Length -eq 0) { Err "rec_failed exit $rc"; return $false }
+  # frames written late = the machine could not encode 60 per second; such a take stutters
+  if ([HandlusWgc]::Stats -match 'frames (\d+)\s+new \d+\s+late (\d+)') {
+    $n = [int]$Matches[1]; $late = [int]$Matches[2]
+    if ($n -gt 0 -and $late * 100 / $n -gt 10) {
+      Err "rec_slow: $late of $n frames were written late - close other apps, set HANDLUS_X264=ultrafast, or lower REC_W / REC_H, then record again"
+      return $false
+    }
   }
   return $true
 }
@@ -220,8 +214,7 @@ switch ($Cmd) {
       exit 2
     }
     $w = $mine[0]
-    "window hwnd:$($w.Hwnd) at:$($w.X),$($w.Y) $($w.W)x$($w.H)"
-    "size $($w.W - ($w.W % 2))x$($w.H - ($w.H % 2)) scale=$($p.Scale.ToString([Globalization.CultureInfo]::InvariantCulture))"
+    "window hwnd:$($w.Hwnd) at:$($w.X),$($w.Y) $($w.W)x$($w.H) scale=$($p.Scale.ToString([Globalization.CultureInfo]::InvariantCulture))"
     $wait = $T0 - (Now-Ms) - 1500
     if ($wait -gt 0) { Start-Sleep -Milliseconds $wait }
     if (-not (Record-Window $i $w $sec $out)) { exit 2 }
@@ -240,11 +233,11 @@ switch ($Cmd) {
     $i = Best-Ffmpeg
     if (-not $i) { 'ffmpeg: not found'; exit 5 }
     "ffmpeg: $($i.exe)"
-    "version: $($i.version)  gfxcapture: $($i.gfx)  hwnd: $($i.hwnd)  capture_cursor: $($i.cursor)  display_border: $($i.border)  encoder: $($i.enc)"
-    if (-not $i.gfx -or -not $i.hwnd -or -not $i.enc) { exit 5 }
+    "version: $($i.version)  encoder: $($i.enc)"
+    if (-not $i.enc) { exit 5 }
   }
   default {
-    Get-Content $PSCommandPath -TotalCount 17 | Select-Object -Skip 1 | ForEach-Object { $_ -replace '^# ?', '' }
+    Get-Content $PSCommandPath -TotalCount 21 | Select-Object -Skip 1 | ForEach-Object { $_ -replace '^# ?', '' }
     exit 1
   }
 }

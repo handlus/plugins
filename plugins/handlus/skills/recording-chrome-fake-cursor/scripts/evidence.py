@@ -5,6 +5,7 @@
                             --fclog fclog.json [--action "타자 → 전송 → 답변 대기"]
       ffprobe(해상도·fps·길이) + `window.__fcLog`(cursor.js runAt 기록) → ok 판정
       ok = fcLog 에 start·end 가 있고 · error 없고 · hidden 이 **전부** false · fps ≥ 40
+      (윈도우 rec.ps1 은 초당 60장을 고르게 쓰고, 인코딩이 밀려 늦게 쓴 프레임이 10% 넘으면 녹화기가 rec_slow 로 실패한다)
   evidence.py sign REC.mp4 --sheet preview.jpg --note "뺀 것: 사이드바·주소창 …"
       sheet.py --preview 시트를 Read 로 본 **뒤에** 서명한다. 시트 파일이 실제로 있어야 한다
   evidence.py check REC.mp4            → exit 0 통과 / 2 위반

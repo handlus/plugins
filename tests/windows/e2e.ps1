@@ -13,6 +13,8 @@ function Setup { & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Pat
 function Now-Ms { [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() }
 Add-Type -AssemblyName System.Drawing
 Add-Type -Path (Join-Path $K 'win32.cs')
+Add-Type -Path (Join-Path $PSScriptRoot 'res.cs')
+"runner display 1920x1080 -> $([Res]::Set(1920, 1080))"; Start-Sleep 2
 
 # ---------- 1. setup before anything is installed ----------
 Log 'setup (check) before install'
