@@ -135,7 +135,7 @@ $build = [Environment]::OSVersion.Version.Build
 $name = if ($os) { $os.Caption } else { 'Windows' }
 if ($build -ge 19041) {
   Ok "$name (build $build, $(Arch))"
-  if ($build -lt 22000) { Info 'Windows 10: Windows may draw a yellow frame around the window while it is recorded (on screen only)' }
+  Info 'Windows may draw a yellow frame around the window while it is recorded (on screen only, not in the video)'
 } else { Miss "$name (build $build)" 'window recording needs Windows 10 version 2004 (build 19041) or later - the user updates Windows' }
 
 "ok       PowerShell $($PSVersionTable.PSVersion)"

@@ -90,7 +90,7 @@ PY "$K\evidence.py" check REC.mp4
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Frozen picture in part of the video | The recording window was **fully** covered or minimized, so Chrome stopped painting it (Windows tells Chrome the window is hidden) | Keep the window uncovered and not minimized; `evidence.py write` fails such a take |
+| Frozen picture in part of the video | The recording window was minimized, or **fully** covered on a Windows where Chrome then stops painting (in tests Windows Server 2022 did; Server 2025 kept recording a covered window). When Chrome stops painting it also marks the page hidden | Keep the window uncovered and not minimized; `evidence.py write` fails such a take |
 | `place` prints `fg=no` | Foreground lock: Windows lets only the app you are using change the front window | `chrome_switch_tab` on the tab, then check nothing covers it |
 | `STOP: a …x… window does not fit` | Display scale is high (150%: a 1920×1080 screen is 1280×720 logical) | Let it choose (unset `REC_W`/`REC_H`) or use another display |
 | `ffmpeg not found` / `has no H.264 encoder` | No ffmpeg, or a build without libx264 and h264_mf | `SETUP install` (it puts one in `scripts\bin\ffmpeg`); or set `HANDLUS_FFMPEG` to another ffmpeg.exe |
@@ -98,7 +98,7 @@ PY "$K\evidence.py" check REC.mp4
 | `STOP: window capture: …` | Windows refused to capture that window (minimized, closed, or Windows older than 10 2004) | Restore the window, check `SETUP`; the message names the failing step |
 | `python` opens the Microsoft Store or does nothing (exit 9009) | Store placeholder | Use the command `setup.ps1` printed (`py -3`) |
 | `running scripts is disabled on this system` even with `-ExecutionPolicy Bypass` | Company group policy | Tell the user; do not change policy |
-| Yellow frame around the window while recording (Windows 10) | Windows' capture indicator | On screen only, not in the video |
+| Yellow frame around the window while recording | Windows' capture indicator (always on Windows 10, sometimes on 11) | On screen only, not in the video |
 | Codex: `Access is denied`, no displays, or `found 0` for a window you can see | The Codex sandbox may not reach other apps' windows | Run `rec.ps1` outside the sandbox (approve the escalation) |
 | Running inside WSL | WSL cannot see or record Windows windows | Run Claude Code or Codex on Windows itself |
 | "…started debugging this browser" bar | Same as macOS | Same as macOS: no debugger-based calls from any agent during the take |
