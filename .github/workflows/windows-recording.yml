@@ -1,12 +1,14 @@
+# Windows recording tests on GitHub's Windows runners (no GPU, desktop session 1920x1080 after the test sets it).
+# e2e.ps1: setup -> install -> a cursor take -> evidence, covers, display scale 125/150 %, then the same take from Git Bash.
 name: windows-recording
 on:
   workflow_dispatch:
     inputs:
       scripts:
-        description: JSON list of test scripts under tests/windows
-        default: '["spike.ps1","e2e.ps1"]'
+        description: JSON list of test scripts under tests/windows (spike.ps1 = measurements, e2e.ps1 = the take)
+        default: '["e2e.ps1"]'
   push:
-    branches: [windows-support]
+    branches: [main, windows-support]
     paths: ['tests/windows/**', 'plugins/handlus/skills/recording-chrome-fake-cursor/**', '.github/workflows/windows-recording.yml']
 jobs:
   run:
@@ -14,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2022, windows-2025]
-        script: ${{ fromJSON(inputs.scripts || '["spike.ps1","e2e.ps1"]') }}
+        script: ${{ fromJSON(inputs.scripts || '["e2e.ps1"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
