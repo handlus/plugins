@@ -49,7 +49,7 @@ function Take([string]$name, [string]$scene, [scriptblock]$during) {
   Py (Join-Path $PSScriptRoot 'drive.py') title "__rec_$name" | Out-Null
   $scr = Rec screens 2>&1 | Out-String; $scr
   $slot = @{}
-  if ($scr -match 'X=(-?\d+) Y=(-?\d+) W=(\d+) H=(\d+) SCALE=([0-9.]+) MONITOR=''([^'']*)''') {
+  if ($scr -match 'X=(-?\d+) Y=(-?\d+) W=(\d+) H=(\d+) SCALE=([0-9.]+) LW=\d+ LH=\d+ MONITOR=''([^'']*)''') {
     $slot = @{ X = [int]$Matches[1]; Y = [int]$Matches[2]; W = [int]$Matches[3]; H = [int]$Matches[4]; Scale = $Matches[5]; Mon = $Matches[6] }
   }
   $pl = Rec place "__rec_$name" 2>&1 | Out-String; $prc = $LASTEXITCODE; $pl

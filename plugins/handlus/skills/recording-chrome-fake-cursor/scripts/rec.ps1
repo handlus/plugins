@@ -1,6 +1,6 @@
 # rec.ps1 - the Windows side of a Chrome window recording (recording-chrome-fake-cursor skill). Same commands as rec.sh.
 #
-#   rec.ps1 screens                        pick the recording slot -> prints X= Y= W= H= SCALE= MONITOR=
+#   rec.ps1 screens                        pick the recording slot -> prints X= Y= W= H= SCALE= LW= LH= MONITOR=
 #   rec.ps1 list                           Chrome windows (hwnd, visible frame, title)
 #   rec.ps1 place <title-marker>           move the Chrome window whose title starts with the marker to the slot and raise it
 #   rec.ps1 record <T0ms> <sec> <out.mp4>  wait until T0-1.5s, then record that window only (prints rec_started)
@@ -169,7 +169,7 @@ switch ($Cmd) {
     $p = Pick
     if (-not $p) { Err "STOP: no display named $($env:REC_MONITOR) - check rec.ps1 screens"; exit 3 }
     $sc = $p.Scale.ToString([Globalization.CultureInfo]::InvariantCulture)
-    "X=$($p.X) Y=$($p.Y) W=$($p.W) H=$($p.H) SCALE=$sc MONITOR='$($p.Monitor)'"
+    "X=$($p.X) Y=$($p.Y) W=$($p.W) H=$($p.H) SCALE=$sc LW=$($p.LW) LH=$($p.LH) MONITOR='$($p.Monitor)'"
     Err "# window $($p.LW)x$($p.LH) logical = $($p.W)x$($p.H) on screen = the video size. Crop coordinates = page coordinates x $sc"
     if (-not $p.Fits) { Err "# WARNING: $($p.W)x$($p.H) does not fit the work area of $($p.Monitor) - lower REC_W / REC_H" }
   }

@@ -93,9 +93,16 @@ $chrome = @("$env:ProgramFiles\Google\Chrome\Application\chrome.exe", "${env:Pro
 "chrome: $chrome"
 $page = 'file:///' + ((Join-Path $PSScriptRoot 'page.html') -replace '\\', '/') + '?rec=spike'
 $prof = Join-Path $env:TEMP 'chr-spike'
-Start-Process $chrome -ArgumentList "--user-data-dir=$prof", '--no-first-run', '--no-default-browser-check', '--remote-debugging-port=9222', '--window-position=100,100', '--window-size=1000,700', $page
-Start-Sleep 6
-$wins = [HandlusRec]::Windows('Chrome_WidgetWin_1') | Where-Object { $_.Visible -and $_.Title -like '__rec_ci*' }
+Start-Process $chrome -ArgumentList "--user-data-dir=$prof", '--no-first-run', '--no-default-browser-check', '--disable-search-engine-choice-screen', '--remote-debugging-port=9222', '--window-position=100,100', '--window-size=1000,700', $page
+$wins = $null
+for ($i = 0; $i -lt 45 -and -not $wins; $i++) {
+  Start-Sleep 1
+  $wins = [HandlusRec]::Windows('Chrome_WidgetWin_1') | Where-Object { $_.Visible -and $_.Title -like '__rec_ci*' }
+  if ($i % 5 -eq 4) {
+    "t=$($i+1)s windows: $(([HandlusRec]::Windows('Chrome_WidgetWin_1') | ForEach-Object { "'$($_.Title)' vis=$($_.Visible)" }) -join ' | ')"
+    try { (Invoke-RestMethod 'http://127.0.0.1:9222/json/list') | ForEach-Object { "  cdp $($_.type) '$($_.title)' $($_.url)" } } catch { "  cdp: $($_.Exception.Message)" }
+  }
+}
 $wins | ForEach-Object { "win hwnd=$($_.Hwnd) title='$($_.Title)' rect=$($_.Rect.L),$($_.Rect.T),$($_.Rect.R),$($_.Rect.B) frame=$($_.Frame.L),$($_.Frame.T),$($_.Frame.R),$($_.Frame.B) cloaked=$($_.Cloaked)" }
 $w = @($wins)[0]
 if (-not $w) { Log 'NO CHROME WINDOW'; [HandlusRec]::Windows('Chrome_WidgetWin_1') | ForEach-Object { "  any: '$($_.Title)' vis=$($_.Visible)" }; Stop-Transcript; exit 0 }
