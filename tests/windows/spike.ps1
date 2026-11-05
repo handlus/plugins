@@ -1,5 +1,7 @@
 # spike.ps1 - T0 measurements on a GitHub Actions Windows runner (docs: recording on Windows)
 $ErrorActionPreference = 'Continue'
+$ProgressPreference = 'SilentlyContinue'   # the PS 5.1 progress bar makes Invoke-WebRequest crawl
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $out = Join-Path $root 'out'; New-Item -ItemType Directory -Force $out | Out-Null
 Start-Transcript -Path (Join-Path $out 'spike.txt') | Out-Null
@@ -54,7 +56,8 @@ if (Get-Command winget -ErrorAction SilentlyContinue) {
 try {
   $rel = Invoke-RestMethod 'https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest' -Headers @{ 'User-Agent' = 'handlus-ci' }
   foreach ($a in $rel.assets) {
-    if ($a.name -match '^ffmpeg-(n8\.1|master)-latest-win64-gpl(-8\.1)?\.zip$') {
+    "asset: $($a.name)"
+    if ($a.name -match '^ffmpeg-n8\.\d+-latest-win64-gpl-8\.\d+\.zip$') {
       $z = Join-Path $ffdir $a.name; Invoke-WebRequest $a.browser_download_url -OutFile $z -UseBasicParsing
       $d = Join-Path $ffdir ($a.name -replace '\.zip$', ''); Expand-Archive $z $d -Force
       $e = Get-ChildItem $d -Recurse -Filter ffmpeg.exe | Select-Object -First 1

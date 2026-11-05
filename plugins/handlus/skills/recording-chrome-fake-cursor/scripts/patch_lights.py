@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""창 녹화의 신호등 자리 녹화 표시를 덮는 패치 PNG 를 만든다.
+"""(macOS 전용 · macOS only) 창 녹화의 신호등 자리 녹화 표시를 덮는 패치 PNG 를 만든다.
+윈도우 창에는 신호등이 없어 쓰지 않는다.
 
 사용: patch_lights.py <원본.mp4> <배율 1|2> <패치.png>
   → 출력 마지막 줄 = ffmpeg overlay 좌표 (예: 7:7)
 제목줄 색은 크롬 프로필 테마마다 달라서 영상 첫 프레임에서 뽑는다.
 """
-import os, shutil, subprocess, sys, tempfile
+import os, subprocess, sys, tempfile
 from PIL import Image, ImageDraw
 
+import fftools
+
+fftools.utf8_stdio()
 src, scale, out = sys.argv[1], int(sys.argv[2]), sys.argv[3]
-FF = shutil.which("ffmpeg") or next((p for p in ("/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg") if os.path.exists(p)), "ffmpeg")
+FF = fftools.find("ffmpeg")
 
 with tempfile.TemporaryDirectory() as td:
     fr = os.path.join(td, 'f.png')

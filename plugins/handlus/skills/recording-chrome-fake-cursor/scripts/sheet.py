@@ -12,14 +12,16 @@
 왜: 0.25s 시트로는 0.1s 짜리 빨간 형식 안내를 놓쳤고, 줄인 미리보기 첫 칸이 잡았다.
     숫자로만 crop 을 고르면 제목이 반쯤 잘린 채 나간다 — 그래서 쓰일 폭 미리보기가 따로 있다.
 """
-import argparse, os, shutil, subprocess, tempfile
+import argparse, os, subprocess, tempfile
 from PIL import Image, ImageDraw, ImageFont
 
-FF = shutil.which("ffmpeg") or next((p for p in ("/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg") if os.path.exists(p)), "ffmpeg")
+import fftools
+
+FF = fftools.find("ffmpeg")
 
 
 def font(sz):
-    for f in ("/System/Library/Fonts/Supplemental/Arial.ttf", "/System/Library/Fonts/Helvetica.ttc"):
+    for f in fftools.font_paths():
         if os.path.exists(f):
             return ImageFont.truetype(f, sz)
     return ImageFont.load_default()
@@ -61,6 +63,7 @@ def parse_crop(s):
 
 
 def main():
+    fftools.utf8_stdio()
     ap = argparse.ArgumentParser()
     ap.add_argument("src")
     ap.add_argument("--out", required=True)

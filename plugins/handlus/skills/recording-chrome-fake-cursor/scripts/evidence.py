@@ -13,11 +13,13 @@
   녹화본을 끝까지 다 보지 않고도 그걸 아는 유일한 기록이 fcLog 다.
 왜 해시인가: 증거를 다른 녹화본 옆에 복사해 두면 통과한다. 증거는 **그 파일**의 것이어야 한다.
 """
-import argparse, datetime, hashlib, json, os, shutil, subprocess, sys
+import argparse, datetime, hashlib, json, os, subprocess, sys
 from pathlib import Path
 
+import fftools
+
 FPS_MIN = 40          # 실측: 배율 2 모니터 약 45fps · 배율 1 모니터 약 56fps
-FFPROBE = shutil.which("ffprobe") or next((p for p in ("/opt/homebrew/bin/ffprobe", "/usr/local/bin/ffprobe") if os.path.exists(p)), "ffprobe")
+FFPROBE = fftools.find("ffprobe")
 
 
 def side(p: Path) -> Path:
@@ -67,7 +69,7 @@ def judge(fclog, fps) -> list[str]:
 
 def write(a):
     p = Path(a.rec).resolve()
-    fclog = json.loads(Path(a.fclog).read_text()) if os.path.exists(a.fclog) else json.loads(a.fclog)
+    fclog = json.loads(fftools.read_text(a.fclog)) if os.path.exists(a.fclog) else json.loads(a.fclog)
     if isinstance(fclog, dict) and "log" in fclog:
         fclog = fclog["log"]
     pr = probe(p)
@@ -79,12 +81,12 @@ def write(a):
     old = side(p)
     if old.exists():   # 서명은 같은 파일일 때만 이어 간다
         try:
-            o = json.loads(old.read_text())
+            o = json.loads(old.read_text(encoding="utf-8"))
             if o.get("sha256") == ev["sha256"] and o.get("eyecheck", {}).get("signed"):
                 ev["eyecheck"] = o["eyecheck"]
         except Exception:
             pass
-    side(p).write_text(json.dumps(ev, ensure_ascii=False, indent=1) + "\n")
+    side(p).write_text(json.dumps(ev, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     print(f"{'✅' if ev['ok'] else '🚨'} {side(p).name} · {pr['width']}x{pr['height']} · {pr['fps']}fps · {pr['duration']}s"
           + ("" if ev["ok"] else "\n   " + "\n   ".join(why)))
     return 0 if ev["ok"] else 2
@@ -95,7 +97,7 @@ def sign(a):
     s = side(p)
     if not s.exists():
         print(f"🚨 {s.name} 없음 — evidence.py write 먼저"); return 2
-    ev = json.loads(s.read_text())
+    ev = json.loads(s.read_text(encoding="utf-8"))
     if ev.get("sha256") != sha256(p):
         print(f"🚨 {s.name} 가 이 녹화본의 증거가 아니다(해시 불일치) — write 를 다시"); return 2
     if not a.sheet or not os.path.isfile(a.sheet):
@@ -104,7 +106,7 @@ def sign(a):
         print("🚨 --note 가 비었다 — 무엇을 crop 으로 뺐는지(사이드바·주소창·핸들 …) 적는다"); return 2
     ev["eyecheck"] = {"signed": True, "sheet": os.path.abspath(a.sheet), "note": a.note.strip(),
                       "by": a.by, "at": datetime.datetime.now().isoformat(timespec="seconds")}
-    s.write_text(json.dumps(ev, ensure_ascii=False, indent=1) + "\n")
+    s.write_text(json.dumps(ev, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     print(f"✅ {s.name} 눈 검사 서명 — {a.note.strip()[:60]}")
     return 0
 
@@ -116,7 +118,7 @@ def verify(path) -> list[str]:
     if not s.exists():
         return [f"{p.name} 의 녹화 증거 {s.name} 가 없다 — evidence.py write (fcLog 붙여서) → sheet.py --preview 로 보고 → evidence.py sign"]
     try:
-        ev = json.loads(s.read_text())
+        ev = json.loads(s.read_text(encoding="utf-8"))
     except Exception as e:
         return [f"{s.name} 을 못 읽는다 — {e}"]
     out = []
@@ -130,6 +132,7 @@ def verify(path) -> list[str]:
 
 
 def main():
+    fftools.utf8_stdio()
     ap = argparse.ArgumentParser()
     sp = ap.add_subparsers(dest="cmd", required=True)
     w = sp.add_parser("write"); w.add_argument("rec")

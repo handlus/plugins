@@ -1,28 +1,30 @@
 ---
 name: recording-chrome-fake-cursor
-description: Record a real Chrome window on macOS while an AI agent drives it, with a visible fake mouse cursor that glides, clicks with an orange ripple and types one letter at a time — without moving the real mouse, so you can keep working. Use for product demos, tutorials, reels, shorts and lecture clips of Chrome being operated through Handlus (or another Chrome MCP). Also when a recording froze, showed Chrome's "started debugging this browser" bar, captured a covered window, or failed with a screen-recording permission (TCC) error, and to set up or check recording on a Mac ("set up recording", "is recording ready", installing ffmpeg or the Screen Recording permission). 크롬 화면 녹화 · 가짜 커서 · 마우스가 움직이는 영상 · 클릭할 때 주황 원 · 한 글자씩 입력되는 화면 · 핸들러스로 조작하며 찍기 · 녹화 준비해 줘 · 녹화 설치 · 화면 기록 권한.
+description: Record a real Chrome window on macOS or Windows while an AI agent drives it, with a visible fake mouse cursor that glides, clicks with an orange ripple and types one letter at a time — without moving the real mouse, so you can keep working. Use for product demos, tutorials, reels, shorts and lecture clips of Chrome being operated through Handlus (or another Chrome MCP). Also when a recording froze, showed Chrome's "started debugging this browser" bar, captured a covered window, or failed with a screen-recording permission (TCC) error, and to set up or check recording on a Mac or a Windows PC ("set up recording", "is recording ready", installing ffmpeg, the Screen Recording permission on macOS, PowerShell setup on Windows). 크롬 화면 녹화 · 가짜 커서 · 마우스가 움직이는 영상 · 클릭할 때 주황 원 · 한 글자씩 입력되는 화면 · 핸들러스로 조작하며 찍기 · 녹화 준비해 줘 · 녹화 설치 · 화면 기록 권한 · 윈도우에서 녹화.
 ---
 
-# Fake-cursor Chrome window recording (macOS)
+# Fake-cursor Chrome window recording (macOS · Windows)
 
-The agent drives Chrome through **Handlus** and draws a **fake cursor** in the page; a ScreenCaptureKit recorder captures **that one Chrome window**.
+The agent drives Chrome through **Handlus** and draws a **fake cursor** in the page; a window recorder captures **that one Chrome window** (ScreenCaptureKit on macOS, Windows.Graphics.Capture through ffmpeg on Windows).
 The cursor moves in a slight arc, shrinks and spreads an orange ring when it clicks, and types character by character, then really clicks and types on the page.
 The real mouse never moves, so the user can keep working on another screen. Because it is a window recording, other windows partly overlapping it do not show up.
 
 Scripts live next to this file: `K="${CLAUDE_SKILL_DIR}/scripts"` (in Codex, or if that variable is not substituted, use the `scripts/` folder beside this SKILL.md).
 
-## 0. Setup — run this first, every time
+**On Windows, read [windows.md](windows.md) now and use its commands** (`setup.ps1` · `rec.ps1` · the Python command `setup.ps1` prints) wherever this file shows `setup.sh` · `rec.sh` · `python3`. Everything else here (rules, shot list, cursor, evidence, traps) is the same. Inside WSL, stop and tell the user to run you from Windows itself. Other systems are not supported.
+
+## 0. Setup — run this first, every time (macOS; Windows: windows.md)
 
 ```bash
 zsh $K/setup.sh            # check only: one line per item, last line READY or NOT READY (exit 0 / 2)
 ```
 
-It checks macOS 13+, Xcode Command Line Tools (`swiftc`), `python3`, `ffmpeg` and `ffprobe`, Google Chrome, builds the recorder `bin/screcord`, and asks ScreenCaptureKit for windows to test the **Screen Recording permission** of the terminal app running you.
+It checks macOS 13+, Xcode Command Line Tools (`swiftc`), `python3` and Pillow, `ffmpeg` and `ffprobe`, Google Chrome, builds the recorder `bin/screcord`, and asks ScreenCaptureKit for windows to test the **Screen Recording permission** of the terminal app running you.
 
 If it prints `NOT READY`:
 1. Tell the user, in their language, what is missing and what installing it means (ffmpeg comes from Homebrew; the permission is a switch in System Settings). Ask once, then run
    ```bash
-   zsh $K/setup.sh install    # installs ffmpeg (brew), builds the recorder, opens the dialogs, then checks again
+   zsh $K/setup.sh install    # installs ffmpeg (brew) and Pillow, builds the recorder, opens the dialogs, then checks again
    ```
 2. Hand over only the steps a person has to do, one at a time, and wait for them:
    - **Command Line Tools**: a macOS dialog opens; they click Install and wait a few minutes. Then run `setup.sh install` again
@@ -99,7 +101,7 @@ python3 $K/evidence.py check REC.mp4     # must pass before you hand the video o
 | Clicks on a cross-origin iframe do nothing | The fake cursor clicks the iframe element, not its contents | Show the cursor moving there, and do the real action another way |
 | Recording starts on the wrong page | A previous take's schedule navigated away | Check the URL and first screen before scheduling |
 
-## Quick reference
+## Quick reference (macOS; Windows: windows.md)
 
 ```bash
 zsh $K/setup.sh [install]             # what is missing (and install it)

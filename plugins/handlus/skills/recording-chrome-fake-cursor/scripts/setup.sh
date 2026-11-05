@@ -39,6 +39,21 @@ SR_PANE='x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenC
 have_clt() { xcode-select -p >/dev/null 2>&1 && xcrun --find swiftc >/dev/null 2>&1; }
 have_brew() { command -v brew >/dev/null 2>&1; }
 have_ffmpeg() { command -v ffmpeg >/dev/null 2>&1 && command -v ffprobe >/dev/null 2>&1; }
+have_pillow() { python3 -c 'import PIL' >/dev/null 2>&1; }
+
+# Not a Mac: Windows (Git Bash, WSL) has its own setup.ps1; Linux is not supported
+not_mac() {
+  local here_win
+  if grep -qi microsoft /proc/version 2>/dev/null; then
+    here_win=$(wslpath -w "$HERE" 2>/dev/null || print "$HERE")
+    print "This is WSL. Recording runs on the Windows side: run the skill from Claude Code or Codex on Windows itself (not inside WSL),"
+    print "or check from here with:  powershell.exe -NoProfile -ExecutionPolicy Bypass -File '$here_win\\setup.ps1'"
+  elif [[ $(uname -s) == MINGW* || $(uname -s) == MSYS* || $(uname -s) == CYGWIN* || ${OS:-} == Windows_NT ]]; then
+    print "This is Windows. Use setup.ps1 instead:  powershell -NoProfile -ExecutionPolicy Bypass -File \"\$(cygpath -w '$HERE')\\setup.ps1\""
+  else
+    print "Recording works on macOS and Windows only."
+  fi
+}
 
 # Runs `screcord list` (asks ScreenCaptureKit for windows) with a 20 s limit. 0 = allowed
 probe_screen_recording() {
@@ -54,7 +69,7 @@ probe_screen_recording() {
 
 if [[ $MODE == install ]]; then
   print "== install"
-  if [[ $(uname) != Darwin ]]; then print "Recording works on macOS only."; exit 2; fi
+  if [[ $(uname) != Darwin ]]; then not_mac; exit 2; fi
   if ! have_clt; then
     print "Opening the Command Line Tools installer. The user clicks Install (a few minutes), then run setup.sh install again."
     xcode-select --install 2>&1 | head -3
@@ -70,6 +85,12 @@ if [[ $MODE == install ]]; then
       print "then: brew install ffmpeg"
     fi
   fi
+  if command -v python3 >/dev/null 2>&1 && ! have_pillow; then
+    print "Installing Pillow (python3 imaging library, used by sheet.py)…"
+    python3 -m pip install --user --quiet pillow 2>/dev/null \
+      || { have_brew && brew install pillow; } \
+      || print "Pillow install failed — show the user: python3 -m pip install --user pillow"
+  fi
   if [[ ! -x $BIN ]]; then print "Building the recorder…"; zsh $HERE/build.sh || print "build failed"; fi
   if [[ -x $BIN ]] && ! probe_screen_recording; then
     print "Opening System Settings → Privacy & Security → Screen & System Audio Recording."
@@ -81,7 +102,7 @@ fi
 
 print "== check"
 if [[ $(uname) != Darwin ]]; then
-  miss "macOS" "recording uses ScreenCaptureKit and works on macOS 13+ only"
+  miss "macOS" "$(not_mac)"
 else
   v=$(sw_vers -productVersion); if (( ${v%%.*} >= 13 )); then ok "macOS $v"; else miss "macOS $v" "macOS 13 or later is needed"; fi
 
@@ -90,6 +111,10 @@ else
   if have_clt && command -v python3 >/dev/null 2>&1; then ok "python3 $(python3 -c 'import platform;print(platform.python_version())' 2>/dev/null)"
   elif ! have_clt; then miss "python3" "comes with Command Line Tools"
   else miss "python3" "brew install python"; fi
+
+  if have_pillow; then ok "Pillow (python3)"
+  elif command -v python3 >/dev/null 2>&1; then miss "Pillow (python3)" "python3 -m pip install --user pillow  (setup.sh install does it)"
+  else miss "Pillow (python3)" "after python3: python3 -m pip install --user pillow"; fi
 
   if have_ffmpeg; then ok "ffmpeg · ffprobe ($(ffmpeg -version 2>/dev/null | head -1 | awk '{print $3}'))"
   elif have_brew; then miss "ffmpeg · ffprobe" "brew install ffmpeg"
