@@ -6,8 +6,8 @@
     {
       "name": "handlus",
       "source": "./plugins/handlus",
-      "description": "Do web steps such as getting API keys in your own signed-in Chrome, and record a Chrome window with a fake cursor (macOS and Windows).",
-      "version": "0.5.0",
+      "description": "Do web steps such as getting API keys in your own signed-in Chrome, operate desktop programs through the Handlus app, and record a Chrome window with a fake cursor (macOS and Windows).",
+      "version": "0.6.0",
       "category": "productivity",
       "homepage": "https://handlus.com"
     }
