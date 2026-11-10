@@ -1,13 +1,13 @@
 {
   "name": "handlus",
   "owner": { "name": "Handlus", "email": "support@handlus.com", "url": "https://handlus.com" },
-  "metadata": { "description": "Plugins from Handlus — the Chrome MCP that lets Claude Code and Codex use your own Chrome." },
+  "metadata": { "description": "Plugins from Handlus — the Chrome MCP that lets Claude Code and Codex use your own browser and computer." },
   "plugins": [
     {
       "name": "handlus",
       "source": "./plugins/handlus",
-      "description": "Do web steps such as getting API keys in your own signed-in Chrome, operate desktop programs through the Handlus app, and record a Chrome window with a fake cursor (macOS and Windows).",
-      "version": "0.6.0",
+      "description": "Do web steps such as getting API keys in your own signed-in browser, operate desktop programs through the Handlus app, and record a Chrome window with a fake cursor (macOS and Windows).",
+      "version": "0.6.1",
       "category": "productivity",
       "homepage": "https://handlus.com"
     }

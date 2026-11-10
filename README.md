@@ -1,10 +1,10 @@
 # Handlus plugins
 
-Skills for AI agents that use your own Chrome and computer through [Handlus](https://handlus.com), packaged for **Claude Code** and **Codex**.
+Skills for AI agents that use your own browser (Chrome, Edge, Whale) and computer through [Handlus](https://handlus.com), packaged for **Claude Code** and **Codex**.
 
 | Skill | What it does |
 |---|---|
-| `handlus-browser` | When a task needs a step on a website (getting an API key from a service's dashboard, changing a console setting) and no connected tool covers it, the agent does it in your signed-in Chrome instead of installing a CLI or handing it back to you. |
+| `handlus-browser` | When a task needs a step on a website (getting an API key from a service's dashboard, changing a console setting) and no connected tool covers it, the agent does it in your signed-in browser instead of installing a CLI or handing it back to you. |
 | `handlus-computer` | When the work is in a desktop program (an order or accounting program, Notepad, Excel, Calculator), the agent reads the window, enters what is needed and reads it back, through the Handlus app on your Mac or Windows PC. |
 | `recording-chrome-fake-cursor` | Records one Chrome window on macOS or Windows while the agent drives it, with a visible fake cursor that glides, clicks with an orange ripple and types letter by letter. Your real mouse never moves. |
 
@@ -30,7 +30,7 @@ To add only the skill, copy `plugins/handlus/skills/recording-chrome-fake-cursor
 
 ## Connect Handlus (once)
 
-The skill drives Chrome through the Handlus MCP server. Install the Handlus extension from [handlus.com](https://handlus.com), then:
+The skills drive your browser through the Handlus MCP server. Install the Handlus extension from [handlus.com](https://handlus.com), then:
 
 ```bash
 claude mcp add --transport http --scope user handlus https://api.handlus.com/mcp   # Claude Code
@@ -62,10 +62,10 @@ There is no permission to turn on and nothing to restart. Requirements in short:
 
 ## 한국어
 
-[Handlus](https://handlus.com)(내 크롬과 컴퓨터를 AI 에이전트가 쓰게 하는 MCP)용 스킬을 클로드코드 · 코덱스 플러그인으로 묶었습니다.
+[Handlus](https://handlus.com)(내 브라우저(크롬 · 엣지 · 웨일)와 컴퓨터를 AI 에이전트가 쓰게 하는 MCP)용 스킬을 클로드코드 · 코덱스 플러그인으로 묶었습니다.
 
-- **웹 일 스킬** `handlus-browser` — 대시보드에서 API 키 발급, 콘솔 설정 바꾸기처럼 웹에서 하는 일을, 맡을 도구가 연결돼 있지 않으면 CLI 를 깔거나 나에게 넘기지 않고 내 크롬에서 합니다.
-- **컴퓨터 스킬** `handlus-computer` — 주문 · 회계 프로그램, 메모장, 엑셀, 계산기처럼 크롬 밖 PC 프로그램에서 하는 일을 Handlus 앱으로 합니다. 창을 먼저 읽고, 입력하고, 다시 읽어 확인합니다(맥 · 윈도우, handlus.com/download 에서 앱 설치).
+- **웹 일 스킬** `handlus-browser` — 대시보드에서 API 키 발급, 콘솔 설정 바꾸기처럼 웹에서 하는 일을, 맡을 도구가 연결돼 있지 않으면 CLI 를 깔거나 나에게 넘기지 않고 내 브라우저에서 합니다.
+- **컴퓨터 스킬** `handlus-computer` — 주문 · 회계 프로그램, 메모장, 엑셀, 계산기처럼 브라우저 밖 PC 프로그램에서 하는 일을 Handlus 앱으로 합니다. 창을 먼저 읽고, 입력하고, 다시 읽어 확인합니다(맥 · 윈도우, handlus.com/download 에서 앱 설치).
 - **녹화 스킬** `recording-chrome-fake-cursor` — 에이전트가 크롬을 조작하는 모습을 그 창만 녹화합니다. 가짜 커서가 움직이고, 누를 때 주황 원이 퍼지고, 글자가 한 자씩 쳐집니다. 진짜 마우스는 움직이지 않습니다(맥 · 윈도우).
 - **클로드코드**: `/plugin marketplace add handlus/plugins` → `/plugin install handlus@handlus`
 - **코덱스**: `codex plugin marketplace add handlus/plugins` → `codex plugin add handlus@handlus`. 스킬만 쓰려면 스킬 폴더를 `~/.codex/skills/` 에 복사
