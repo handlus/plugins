@@ -1,7 +1,7 @@
 {
   "name": "handlus",
   "owner": { "name": "Handlus", "email": "support@handlus.com", "url": "https://handlus.com" },
-  "metadata": { "description": "Plugins from Handlus — the Chrome MCP that lets Claude Code and Codex use your own browser and computer." },
+  "metadata": { "description": "Plugins from Handlus, the Chrome MCP that lets Claude Code and Codex use your own browser and computer." },
   "plugins": [
     {
       "name": "handlus",
