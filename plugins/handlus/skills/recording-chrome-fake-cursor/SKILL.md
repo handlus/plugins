@@ -77,7 +77,7 @@ chrome_demo_cursor action:"play" startAt:<T0 epoch ms> start:[1500, 760] scrollT
 1. `desktop_record action:"start" marker:"__rec_<name>" seconds:<action length + 3> start_at:<T0> computer:"<this Mac>"` → `{"id":"rec-…","state":"waiting","file":"…/Movies/Handlus/rec-….mp4","width":…,"height":…,"covered_pct":…,"raised":true,…}`. The app brings the window to the front, checks that it is not covered, and records only that window from 1.5 s before T0. An error answer names the problem and the next step (Traps)
 2. `chrome_demo_cursor action:"status"`: if `hidden` is `true`, the window is still covered or minimized. Do not play: `desktop_record action:"stop" id:<id>`, have it uncovered, and start again with a new T0
 3. `chrome_demo_cursor action:"play" startAt:<T0> …` (5-A). Its answer has `hidden` too; if it is `true`, stop and record again. If T0 is less than 3 s away by now, stop and start again with a new T0
-4. `desktop_record action:"status" id:<id> wait_ms:45000`, repeated until `state` is `done` (or `failed`). The done answer has `file`, `width`, `height`, `video_seconds`, `fps`, `frames` and `dropped`
+4. `desktop_record action:"status" id:<id> wait_ms:45000`, repeated until `state` is `done` (or `failed`, or `stopped` when the user turned off computer control: ask before recording again). status and stop go to the Mac that started it. The done answer has `file`, `width`, `height`, `video_seconds`, `fps`, `frames` and `dropped`
 
 Keep the recording only 3 s longer than the action; a long static tail lowers the frame rate. One recording at a time per computer, up to 600 s. `stop` ends early and keeps the file.
 
@@ -123,7 +123,7 @@ python3 $K/evidence.py check REC.mp4     # must pass before you hand the video o
 zsh $K/setup.sh [install]          # the Handlus app: installed · 1.5.0+ · connected · running (and install it)
 desktop_list                       # this Mac [on]; [screen_off] = Screen Recording is off for Handlus
 desktop_record action:"start"  marker:"__rec_<name>" seconds:<s> start_at:<T0> computer:"<Mac>"   # → id, file
-desktop_record action:"status" id:"rec-…" wait_ms:45000                                          # until done or failed
+desktop_record action:"status" id:"rec-…" wait_ms:45000                                          # until done, failed or stopped
 desktop_record action:"stop"   id:"rec-…"                                                        # end early, keep the file
 ```
 Report back: the video path, the step 8 check (the status numbers and the log, or the `evidence.py check` result), and anything the dry run left in the user's accounts.
