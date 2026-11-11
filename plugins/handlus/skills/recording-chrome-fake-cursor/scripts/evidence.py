@@ -4,6 +4,9 @@
   evidence.py write REC.mp4 --monitor "<display name>" --scale 1 --profile <chrome profile> --url <opened url> \
                             --fclog fclog.json [--action "타자 → 전송 → 답변 대기"]
       ffprobe(해상도·fps·길이) + `window.__fcLog`(cursor.js runAt 기록) → ok 판정
+  evidence.py write REC.mp4 --app status.json --profile <chrome profile> --url <opened url> --fclog fclog.json [--action …]
+      맥: Handlus 앱이 녹화했으면 `desktop_record` status 결과(JSON 파일 또는 글)의 width·height·fps·video_seconds 를 쓴다.
+      ffprobe 가 없어도 된다. state 가 done 이 아니면 불합격. --monitor · --scale 은 넣지 않아도 된다
       ok = fcLog 에 start·end 가 있고 · error 없고 · hidden 이 **전부** false · fps ≥ 40
       (윈도우 rec.ps1 은 초당 60장을 고르게 쓰고, 인코딩이 밀려 늦게 쓴 프레임이 10% 넘으면 녹화기가 rec_slow 로 실패한다)
   evidence.py sign REC.mp4 --sheet preview.jpg --note "뺀 것: 사이드바·주소창 …"
@@ -46,6 +49,17 @@ def probe(p: Path) -> dict:
             "duration": round(float(j["format"]["duration"]), 3)}
 
 
+def from_app(text: str) -> tuple[dict, list[str]]:
+    """Handlus 앱 desktop_record status 결과 → probe() 와 같은 꼴 + 앱이 알려 준 불합격 사유"""
+    j = json.loads(fftools.read_text(text) if os.path.exists(text) else text)
+    why = []
+    if j.get("state") != "done":
+        why.append(f"앱 녹화 state 가 {j.get('state')!r} 다 (done 이 아님){': ' + str(j['error']) if j.get('error') else ''}. 다시 찍는다")
+    pr = {"width": int(j.get("width") or 0), "height": int(j.get("height") or 0),
+          "fps": round(float(j.get("fps") or 0), 2), "duration": round(float(j.get("video_seconds") or 0), 3)}
+    return pr, why
+
+
 def judge(fclog, fps) -> list[str]:
     why = []
     labels = [str(e[1]) for e in fclog] if isinstance(fclog, list) else []
@@ -73,9 +87,15 @@ def write(a):
     fclog = json.loads(fftools.read_text(a.fclog)) if os.path.exists(a.fclog) else json.loads(a.fclog)
     if isinstance(fclog, dict) and "log" in fclog:
         fclog = fclog["log"]
-    pr = probe(p)
-    why = judge(fclog, pr["fps"])
-    ev = {"ok": not why, "why": why, "file": p.name, "sha256": sha256(p), **pr,
+    if a.app:
+        pr, why = from_app(a.app)
+        why += judge(fclog, pr["fps"])
+    else:
+        if a.monitor is None or a.scale is None:
+            print("🚨 --monitor 와 --scale 을 넣는다 (Handlus 앱이 녹화했으면 대신 --app status.json)"); return 2
+        pr = probe(p)
+        why = judge(fclog, pr["fps"])
+    ev = {"ok": not why, "why": why, "file": p.name, "sha256": sha256(p), **pr, "source": "app" if a.app else "ffprobe",
           "monitor": a.monitor, "scale": a.scale, "profile": a.profile, "url": a.url, "action": a.action,
           "fcLog": fclog, "written": datetime.datetime.now().isoformat(timespec="seconds"),
           "eyecheck": {"signed": False}}
@@ -137,7 +157,8 @@ def main():
     ap = argparse.ArgumentParser()
     sp = ap.add_subparsers(dest="cmd", required=True)
     w = sp.add_parser("write"); w.add_argument("rec")
-    w.add_argument("--monitor", required=True); w.add_argument("--scale", type=float, required=True)
+    w.add_argument("--monitor"); w.add_argument("--scale", type=float)
+    w.add_argument("--app", help="맥: Handlus 앱 desktop_record status 결과 JSON 파일 경로 또는 JSON 글 (ffprobe 대신)")
     w.add_argument("--profile", required=True); w.add_argument("--url", required=True)
     w.add_argument("--fclog", required=True, help="__fcLog JSON 파일 경로 또는 JSON 문자열")
     w.add_argument("--action", default="")
