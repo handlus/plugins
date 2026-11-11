@@ -49,12 +49,12 @@ Do not reset or edit macOS privacy settings yourself (no `tccutil`), and do not 
 
 **2. Dry run (no recording)** — run the same steps once with `chrome_demo_cursor action:"play"` and no `startAt`. Fix any step that logs `error`, and anything that shows personal data.
 
-**3. Display** (macOS): nothing to pick. The window is recorded where it is, on whichever display it is, and is never moved. The video is the window size × that display's scale: a 1440×900 window on a Retina (scale 2) display gives 2880×1800, and crop coordinates double. `desktop_record start` returns `width` and `height`.
+**3. Display** (macOS): nothing to pick. The window is recorded where it is, on whichever display it is, and is never moved. The video is the window size × that display's scale: a 1280×800 window on a Retina (scale 2) display gives 2560×1600, and crop coordinates double. `desktop_record start` returns `width` and `height`.
 
 **4. Window**
-- `chrome_navigate browser:<profile> url:"<url>?rec=<name>" newWindow:true width:1440 height:900`. The unique `?rec=` query prevents reusing an existing tab. 1440×900 fits every Mac screen; use 1920×1200 only on a large display. `<name>` uses only letters, digits, `_` and `-`
+- `chrome_navigate browser:<profile> url:"<url>?rec=<name>" newWindow:true width:1280 height:800`. The unique `?rec=` query prevents reusing an existing tab. `<name>` uses only letters, digits, `_` and `-`. A larger window (1440×900, 1920×1200) suits a larger display; Chrome keeps the window on the screen, so read the real size from `desktop_record start` (`window`, `width`, `height`)
 - `chrome_demo_cursor action:"title" title:"__rec_<name>"` (temporary title marker; exactly one window may contain it)
-- Do not move or resize the window after this. Ask the user not to put another window fully over it, and not to minimize it, until the take ends
+- macOS: do not move or resize the window after this (windows.md has its own `place` step). Ask the user not to put another window fully over it, and not to minimize it, until the take ends
 
 **5-A. Cursor and schedule — Handlus `chrome_demo_cursor`**
 ```text

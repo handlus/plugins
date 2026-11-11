@@ -126,6 +126,10 @@ install_app() {
   fi
   dest=/Applications
   [[ -w $dest ]] || { dest=$HOME/Applications; mkdir -p "$dest"; }
+  # Replace only a copy that is not running (the app normally runs from Application Support, not from here)
+  if pgrep -f "$dest/Handlus.app/Contents/MacOS/" >/dev/null 2>&1; then
+    print "Handlus is running from $dest/Handlus.app. The user quits it from the menu bar icon, then run setup.sh install again."; return 1
+  fi
   rm -rf "$dest/Handlus.app.new"
   if ! ditto "$mnt/Handlus.app" "$dest/Handlus.app.new"; then print "Could not copy Handlus.app to $dest. Send the user to $PAGE."; return 1; fi
   rm -rf "$dest/Handlus.app" && mv "$dest/Handlus.app.new" "$dest/Handlus.app"
@@ -148,6 +152,10 @@ if [[ $MODE == install ]]; then
   if app=$(find_app) && read_status "$app" && ver_ge "$APP_VERSION" $MIN; then
     if [[ $APP_RUNNING == yes && $APP_CONNECTED == yes ]]; then print "The Handlus app $APP_VERSION is installed, connected and running."
     else print "Opening $app"; open "$app"; next_steps; fi
+  elif [[ -n ${APP_VERSION:-} && ${APP_RUNNING:-} == yes && ${APP_CONNECTED:-} == yes ]] && ver_ge "$APP_VERSION" 1.4.0; then
+    # 1.4.0+ gets new versions from the server while it is connected: nothing to download
+    print "The Handlus app $APP_VERSION is running and connected, so it updates itself to the latest version within a minute."
+    print "Run setup.sh again in a minute. If it still says $APP_VERSION, $MIN may not be out yet."
   else
     install_app || exit 2
     next_steps
