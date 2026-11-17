@@ -1,6 +1,6 @@
 ---
 name: handlus-computer
-description: Operate desktop programs on the user's own computer (outside the browser) through the Handlus app with the desktop_* tools on the same handlus MCP. For entering rows into a PC program (order entry, accounting, ERP, an internal tool), reading a value from a native window, using Calculator, Notepad, Excel, Finder or any app with accessibility labels. Use when the work is in a desktop app rather than a website. PC 프로그램 조작 · 데스크톱 앱에 입력 · 주문 입력 · 엑셀 · 메모장 · 계산기 · 컴퓨터에서 해 줘.
+description: Operate programs on the user's own computer (outside the browser) through the Handlus app with the desktop_* tools on the same handlus MCP. Use whenever a request is about a program or app on the computer (opening, launching, running or closing an app, reading what its window shows, clicking and typing in it, or listing what is open), such as Excel, KakaoTalk, Finder, Calculator, Notepad, an order, accounting or ERP program, or an internal tool. Not for files, code or terminal commands. 컴퓨터 프로그램 · 앱 열기 · 실행 · 켜 줘 · 엑셀 · 카카오톡 · 메모장 · 계산기 · 주문 입력 · 열려 있는 프로그램 · 컴퓨터에서 해 줘.
 ---
 
 # Desktop programs on the user's computer (Handlus)
@@ -9,8 +9,9 @@ The Handlus app on the user's Mac or Windows PC runs the computer-control engine
 
 ## When
 
-- The task is in a desktop program: typing rows into an order or accounting program, reading a total from a native window, filling a form in an installed app.
-- A website is better done with the `chrome_*` tools (see the handlus-browser skill). Use `desktop_*` for programs outside the browser.
+- The request is about a program on the computer: opening or running an app (「엑셀 켜 줘」, "open Calculator"), typing rows into an order or accounting program, reading a total or a message from a native window, filling a form in an installed app, or "what is open on my computer".
+- Do it here without asking first. Opening the program is part of it: use `desktop_app` with `launch`, so the next steps can read and check its window.
+- A website is better done with the `chrome_*` tools (see the handlus-browser skill). Files, code and terminal commands are not this skill.
 
 ## Steps
 
