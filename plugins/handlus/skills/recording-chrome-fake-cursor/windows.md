@@ -40,7 +40,7 @@ SETUP              # one line per item, last line READY or NOT READY (exit 0 / 2
 It checks Windows 10 2004+ / 11, ffmpeg with an H.264 encoder, Python 3 and Pillow, Google Chrome, and records one open
 Chrome window for 1 s (skipped if no Chrome window is open).
 
-If it prints `NOT READY`: say what is missing and what installing it does (this user only, no administrator rights), then
+If it prints `NOT READY`: installing software on this computer needs the user's yes first. Say what is missing and what installing it does (this user only, no administrator rights); once they agree, run
 ```bash
 SETUP install      # ffmpeg into scripts\bin\ffmpeg (from github.com/BtbN/FFmpeg-Builds), Python (winget or python.org,
                    # for this user only) and Pillow (pip --user). No administrator rights, then it checks again
