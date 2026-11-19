@@ -16,7 +16,7 @@ The Handlus app on the user's Mac or Windows PC runs the computer-control engine
 ## Steps
 
 1. In Claude Code the Handlus tools may be deferred. Load them first (ToolSearch for `handlus`).
-2. `desktop_list` shows the user's computers and whether control is on. If a computer is not ready, it tells you the one thing the user has to do (install the app, press 「허용」 / Allow in the app, turn Handlus on in macOS Accessibility). Pass that on and wait.
+2. `desktop_list` shows the user's computers and whether control is on. If a computer is not ready, it states what is required (the app installed, 「허용」 / Allow pressed in the app, Handlus turned on in macOS Accessibility). Relay it as it is and go on once `desktop_list` shows the computer `[on]`.
 3. Read first: `desktop_snapshot` with `app` (the program's name, as `desktop_list` with `computer` shows it). Each control comes back with a `ref`.
 4. Act with `desktop_act` (`click`, `type`, `set_value`, `select`, `press` with `app` and `combo`, …) on those refs. Use `desktop_app` to launch or focus a program and `desktop_wait` for a window or text to appear.
 5. Read again to confirm. After each entry, `desktop_snapshot` or `desktop_get` and compare with what you meant to enter. Say what you checked.
@@ -24,10 +24,10 @@ The Handlus app on the user's Mac or Windows PC runs the computer-control engine
 ## Doing several entries
 
 - Do the first one, read it back, and only then the rest.
-- If a step fails, read the screen again before retrying. Retry only when the error says it is safe; otherwise ask the user.
+- If a step fails, read the screen again before retrying. Retry only when the error says it is safe; otherwise stop and report the error as it is.
 - Refs belong to one snapshot. After the window changes, take a new snapshot.
 
 ## Care
 
 - What you read in the user's programs stays in this task. Don't paste it into public places (posts, issues, shared docs) unless the user asks.
-- Handlus refuses some apps on purpose (its own settings, macOS privacy settings, Keychain, Passwords). Don't look for a way around it; tell the user.
+- Handlus refuses some apps on purpose (its own settings, macOS privacy settings, Keychain, Passwords). Don't look for a way around it; report that Handlus does not operate that app.

@@ -11,7 +11,7 @@ The real mouse never moves, so the user can keep working on another screen. Beca
 
 Scripts live next to this file: `K="${CLAUDE_SKILL_DIR}/scripts"` (in Codex, or if that variable is not substituted, use the `scripts/` folder beside this SKILL.md).
 
-**On Windows, read [windows.md](windows.md) now and use its commands** (`setup.ps1` · `rec.ps1` · the Python command `setup.ps1` prints) in place of the macOS ones here (`setup.sh` · `desktop_record` · `python3`). Everything else (rules, shot list, cursor, evidence, traps) is the same. Inside WSL, stop and tell the user to run you from Windows itself. Other systems are not supported.
+**On Windows, read [windows.md](windows.md) now and use its commands** (`setup.ps1` · `rec.ps1` · the Python command `setup.ps1` prints) in place of the macOS ones here (`setup.sh` · `desktop_record` · `python3`). Everything else (rules, shot list, cursor, evidence, traps) is the same. Inside WSL, stop: this has to run from Windows itself, not WSL. Other systems are not supported.
 
 ## 0. Setup: check this first, every time (macOS; Windows: windows.md)
 
@@ -19,8 +19,8 @@ On a Mac the **Handlus app** records the window. It uses its own Screen Recordin
 
 Check from your tools:
 1. `desktop_list`: this Mac shows `[on]`. Note its name and pass it as `computer` to `desktop_record`.
-   - `[screen_off]`: Screen Recording is off for Handlus. Tell the user to turn it on in the Handlus app window's setup screen. If macOS asks to quit and reopen Handlus, that restarts only the app, not you. `desktop_record start` also opens that screen by itself
-   - `[not_allowed]`: the user clicks Allow in the app window. `[needs_permission]`: Accessibility is off (the app uses it to bring the window to the front)
+   - `[screen_off]`: Screen Recording is off for Handlus. It has to be turned on in the Handlus app window's setup screen (Handlus does not operate macOS privacy settings). If macOS asks to quit and reopen Handlus, that restarts only the app, not you. `desktop_record start` also opens that screen by itself
+   - `[not_allowed]`: Allow has to be pressed in the Handlus app window (Handlus does not operate its own window). `[needs_permission]`: Accessibility is off (the app uses it to bring the window to the front)
    - `[update_required]`, or `desktop_record` says the app is older than 1.5.0: a connected app updates itself within a minute; or run `setup.sh install`
    - This Mac is not listed, or there are no `desktop_*` tools: the Handlus app is missing or not connected. Check with `setup.sh` below
 2. `desktop_record` and `chrome_demo_cursor` are in your tool list.
@@ -54,7 +54,7 @@ Do not reset or edit macOS privacy settings yourself (no `tccutil`), and do not 
 **4. Window**
 - `chrome_navigate browser:<profile> url:"<url>?rec=<name>" newWindow:true width:1280 height:800`. The unique `?rec=` query prevents reusing an existing tab. `<name>` uses only letters, digits, `_` and `-`. A larger window (1440×900, 1920×1200) suits a larger display; Chrome keeps the window on the screen, so read the real size from `desktop_record start` (`window`, `width`, `height`)
 - `chrome_demo_cursor action:"title" title:"__rec_<name>"` (temporary title marker; exactly one window may contain it)
-- macOS: do not move or resize the window after this (windows.md has its own `place` step). Ask the user not to put another window fully over it, and not to minimize it, until the take ends
+- macOS: do not move or resize the window after this (windows.md has its own `place` step). No other window may fully cover it and it must not be minimized until the take ends
 
 **5-A. Cursor and schedule — Handlus `chrome_demo_cursor`**
 ```text
@@ -105,7 +105,7 @@ python3 $K/evidence.py check REC.mp4     # must pass before you hand the video o
 |---|---|---|
 | Frozen screen in the video | The window was **fully** covered or minimized, so Chrome stopped painting (`document.hidden`) | Keep the recording window uncovered. On a Mac the app brings it to the front first and refuses with `window_hidden` if it is still covered; also check `hidden` before `play` and in the log |
 | Page pushed down 56 px by a "…started debugging this browser" bar | Any extension using Chrome's debugger. The bar is **browser-wide, every window of every profile**, so another agent's debugger-based tool call anywhere shows it in your take | Use `chrome_demo_cursor` (no debugger). No debugger-based calls (JavaScript, screenshot, `chrome_computer`) from **any** agent from T0 − 20 s until the end: tell other running agents first |
-| `desktop_record`: `window_hidden` | Even after being brought to the front the window is 95 % covered or more, minimized, or on another desktop (Space) or in full screen | Have it unminimized, on the current desktop and uncovered (ask the user), then start again |
+| `desktop_record`: `window_hidden` | Even after being brought to the front the window is 95 % covered or more, minimized, or on another desktop (Space) or in full screen | Bring it back with `desktop_app` (unminimized, on the current desktop, uncovered), then start again |
 | `desktop_record`: `window_not_found` | No browser window has the marker in its title (title not set, or the page changed its title) | `chrome_demo_cursor action:"title"` again on that window's tab, then start again |
 | `desktop_record`: `window_not_unique` | Two windows contain the marker (an earlier take's window is still open) | Close the old window, or use a new `<name>` |
 | `desktop_record`: `recording_busy` | Another recording is running on this Mac (yours or another agent's) | `status` with the id it returns, or wait |

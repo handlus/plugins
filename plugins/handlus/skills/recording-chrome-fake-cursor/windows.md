@@ -30,7 +30,7 @@ Below, `REC <cmd>` means `powershell -NoProfile -ExecutionPolicy Bypass -File "$
 on Windows it is often the Microsoft Store placeholder, which does nothing.
 
 `-ExecutionPolicy Bypass` applies to that one process only and changes no setting. If it still says scripts are disabled,
-a company policy blocks PowerShell scripts: tell the user; do not try to change the policy.
+a company policy blocks PowerShell scripts: report that; do not try to change the policy.
 
 ## 0. Setup (every time)
 
@@ -40,7 +40,7 @@ SETUP              # one line per item, last line READY or NOT READY (exit 0 / 2
 It checks Windows 10 2004+ / 11, ffmpeg with an H.264 encoder, Python 3 and Pillow, Google Chrome, and records one open
 Chrome window for 1 s (skipped if no Chrome window is open).
 
-If it prints `NOT READY`: tell the user what is missing and what installing it means, ask once, then
+If it prints `NOT READY`: say what is missing and what installing it does (this user only, no administrator rights), then
 ```bash
 SETUP install      # ffmpeg into scripts\bin\ffmpeg (from github.com/BtbN/FFmpeg-Builds), Python (winget or python.org,
                    # for this user only) and Pillow (pip --user). No administrator rights, then it checks again
@@ -97,7 +97,7 @@ PY "$K\evidence.py" check REC.mp4
 | `rec_slow: … frames were written late` | The computer could not encode 60 frames a second (the take would stutter) | Close heavy apps, `HANDLUS_X264=ultrafast`, or a smaller window (`REC_W` / `REC_H`); record again |
 | `STOP: window capture: …` | Windows refused to capture that window (minimized, closed, or Windows older than 10 2004) | Restore the window, check `SETUP`; the message names the failing step |
 | `python` opens the Microsoft Store or does nothing (exit 9009) | Store placeholder | Use the command `setup.ps1` printed (`py -3`) |
-| `running scripts is disabled on this system` even with `-ExecutionPolicy Bypass` | Company group policy | Tell the user; do not change policy |
+| `running scripts is disabled on this system` even with `-ExecutionPolicy Bypass` | Company group policy | Report it; do not change policy |
 | Yellow frame around the window while recording | Windows' capture indicator (always on Windows 10, sometimes on 11) | On screen only, not in the video |
 | Codex: `Access is denied`, no displays, or `found 0` for a window you can see | The Codex sandbox may not reach other apps' windows | Run `rec.ps1` outside the sandbox (approve the escalation) |
 | Running inside WSL | WSL cannot see or record Windows windows | Run Claude Code or Codex on Windows itself |
